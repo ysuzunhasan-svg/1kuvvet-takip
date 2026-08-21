@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Write-Output \"PWD: $\\(Get-Location\\)\"; Get-ChildItem -Force | Format-Table -AutoSize | Out-String)"
+    ]
+  }
+}
