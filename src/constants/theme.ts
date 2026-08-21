@@ -13,29 +13,23 @@ export const ClubColors = {
   yellow: '#FFD100',
 } as const;
 
+// Marka kararı: uygulama her zaman siyah zeminde, sistem light/dark ayarından
+// bağımsız (İstanbulspor kimliği sabit kalsın diye light/dark aynı paleti kullanır).
+const clubTheme = {
+  text: '#ffffff',
+  background: ClubColors.black,
+  backgroundElement: '#1A1A1A',
+  backgroundSelected: '#3A3200',
+  textSecondary: '#A8A8A8',
+  accent: ClubColors.yellow,
+  onAccent: ClubColors.black,
+  headerBackground: ClubColors.black,
+  headerText: ClubColors.yellow,
+} as const;
+
 export const Colors = {
-  light: {
-    text: '#000000',
-    background: '#ffffff',
-    backgroundElement: '#F0F0F3',
-    backgroundSelected: '#FFF3B8',
-    textSecondary: '#60646C',
-    accent: ClubColors.yellow,
-    onAccent: ClubColors.black,
-    headerBackground: ClubColors.black,
-    headerText: ClubColors.yellow,
-  },
-  dark: {
-    text: '#ffffff',
-    background: '#000000',
-    backgroundElement: '#212225',
-    backgroundSelected: '#4A3F00',
-    textSecondary: '#B0B4BA',
-    accent: ClubColors.yellow,
-    onAccent: ClubColors.black,
-    headerBackground: ClubColors.black,
-    headerText: ClubColors.yellow,
-  },
+  light: clubTheme,
+  dark: clubTheme,
 } as const;
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;

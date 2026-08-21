@@ -14,11 +14,11 @@ export function AppHeader() {
             style={styles.logo}
             resizeMode="contain"
           />
-          <View>
-            <ThemedText type="smallBold" themeColor="headerText" style={styles.titleLine}>
+          <View style={styles.titleBlock}>
+            <ThemedText themeColor="headerText" style={styles.titleLine}>
               İSTANBULSPOR
             </ThemedText>
-            <ThemedText type="small" themeColor="headerText" style={styles.subtitleLine}>
+            <ThemedText themeColor="headerText" style={styles.subtitleLine}>
               Salon Takip Sistemi
             </ThemedText>
           </View>
@@ -31,22 +31,40 @@ export function AppHeader() {
 const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: ClubColors.black,
+    zIndex: 10,
+    // "Katman" hissi: içeriğin tamamı siyah olduğu için header'ın öne çıkması
+    // için hafif bir gölge/derinlik veriyoruz.
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.7,
+    shadowRadius: 12,
+    elevation: 10,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.two,
+    gap: Spacing.three,
     paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
+    paddingTop: Spacing.four,
+    paddingBottom: Spacing.three,
   },
   logo: {
-    width: 40,
-    height: 40,
+    width: 52,
+    height: 52,
+  },
+  titleBlock: {
+    gap: 2,
   },
   titleLine: {
+    fontSize: 21,
+    lineHeight: 24,
+    fontWeight: '800',
     letterSpacing: 0.5,
   },
   subtitleLine: {
-    opacity: 0.85,
+    fontSize: 15,
+    lineHeight: 19,
+    fontWeight: '600',
+    opacity: 0.9,
   },
 });
