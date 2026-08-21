@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getPlayer, listPlayers } from './api';
+import { createPlayer, type CreatePlayerInput, getPlayer, listPlayers } from './api';
 
 export function usePlayers(activeOnly = true) {
   return useQuery({
@@ -14,5 +14,13 @@ export function usePlayer(id: string | undefined) {
     queryKey: ['players', id],
     queryFn: () => getPlayer(id as string),
     enabled: !!id,
+  });
+}
+
+export function useCreatePlayer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreatePlayerInput) => createPlayer(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['players'] }),
   });
 }

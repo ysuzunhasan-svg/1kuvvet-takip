@@ -23,7 +23,18 @@ export default function PlayersScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <View style={styles.header}>
+          <ThemedText type="subtitle">Oyuncular</ThemedText>
+          <Link href="/players/new" asChild>
+            <Pressable style={{ ...styles.newButton, backgroundColor: theme.text }}>
+              <ThemedText themeColor="background" type="smallBold">
+                + Oyuncu Ekle
+              </ThemedText>
+            </Pressable>
+          </Link>
+        </View>
+
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -68,6 +79,17 @@ export default function PlayersScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.three,
+  },
+  newButton: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+  },
   search: {
     borderRadius: Spacing.two,
     paddingHorizontal: Spacing.three,

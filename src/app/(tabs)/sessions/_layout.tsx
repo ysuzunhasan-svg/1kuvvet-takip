@@ -10,7 +10,7 @@ export default function SessionsStackLayout() {
         headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.text,
       }}>
-      <Stack.Screen name="index" options={{ title: 'Antrenmanlar' }} />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="new" options={{ title: 'Yeni Antrenman', presentation: 'modal' }} />
       <Stack.Screen name="[sessionId]/index" options={{ title: 'Antrenman' }} />
       <Stack.Screen name="[sessionId]/entry" options={{ title: 'Kayıt Ekle', presentation: 'modal' }} />

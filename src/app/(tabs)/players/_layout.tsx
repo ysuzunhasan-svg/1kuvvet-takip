@@ -10,7 +10,8 @@ export default function PlayersStackLayout() {
         headerStyle: { backgroundColor: theme.background },
         headerTintColor: theme.text,
       }}>
-      <Stack.Screen name="index" options={{ title: 'Oyuncular' }} />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="new" options={{ title: 'Yeni Oyuncu', presentation: 'modal' }} />
       <Stack.Screen name="[playerId]/index" options={{ title: 'Oyuncu' }} />
       <Stack.Screen name="[playerId]/report" options={{ title: 'Kümülatif Rapor' }} />
     </Stack>

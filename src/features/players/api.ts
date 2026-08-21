@@ -14,3 +14,18 @@ export async function getPlayer(id: string) {
   if (error) throw error;
   return data as Player;
 }
+
+export interface CreatePlayerInput {
+  full_name: string;
+  position?: string;
+}
+
+export async function createPlayer(input: CreatePlayerInput) {
+  const { data, error } = await supabase
+    .from('players')
+    .insert({ full_name: input.full_name, position: input.position || null })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Player;
+}
