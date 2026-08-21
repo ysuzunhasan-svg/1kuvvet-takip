@@ -1,25 +1,21 @@
 import { format, subDays } from 'date-fns';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { SESSION_TYPE_LABEL } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
 import { useCreateSession } from '@/features/sessions/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
 
-const TYPE_OPTIONS: { value: SessionType; label: string }[] = [
-  { value: 'pre_activation', label: 'Salon Aktivasyonu (Antrenman Öncesi)' },
-  { value: 'post_strength', label: 'Kuvvet Antrenmanı (Antrenman Sonrası)' },
-];
-
 export default function NewSessionScreen() {
+  const { sessionType } = useLocalSearchParams<{ sessionType: SessionType }>();
   const theme = useTheme();
   const [sessionDate, setSessionDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [sessionType, setSessionType] = useState<SessionType>('post_strength');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const createSession = useCreateSession();
@@ -42,6 +38,11 @@ export default function NewSessionScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <View style={styles.field}>
+          <ThemedText type="smallBold">Tip</ThemedText>
+          <ThemedText>{SESSION_TYPE_LABEL[sessionType] ?? sessionType}</ThemedText>
+        </View>
+
+        <View style={styles.field}>
           <ThemedText type="smallBold">Tarih</ThemedText>
           <TextInput
             value={sessionDate}
@@ -61,23 +62,6 @@ export default function NewSessionScreen() {
               </ThemedText>
             </Pressable>
           </View>
-        </View>
-
-        <View style={styles.field}>
-          <ThemedText type="smallBold">Tip</ThemedText>
-          {TYPE_OPTIONS.map((option) => (
-            <Pressable
-              key={option.value}
-              onPress={() => setSessionType(option.value)}
-              style={[
-                styles.typeOption,
-                {
-                  backgroundColor: sessionType === option.value ? theme.backgroundSelected : theme.backgroundElement,
-                },
-              ]}>
-              <ThemedText>{option.label}</ThemedText>
-            </Pressable>
-          ))}
         </View>
 
         <View style={styles.field}>
@@ -120,11 +104,6 @@ const styles = StyleSheet.create({
   },
   notesInput: { minHeight: 80, textAlignVertical: 'top' },
   quickDateRow: { flexDirection: 'row', gap: Spacing.three },
-  typeOption: {
-    borderRadius: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-  },
   error: { color: '#e34948' },
   button: {
     borderRadius: Spacing.two,

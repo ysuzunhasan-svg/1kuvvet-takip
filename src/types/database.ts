@@ -34,7 +34,7 @@ export interface Exercise {
   created_at: string;
 }
 
-export type SessionType = 'pre_activation' | 'post_strength';
+export type SessionType = 'ptp' | 'strength' | 'individual';
 
 export interface TrainingSession {
   id: string;

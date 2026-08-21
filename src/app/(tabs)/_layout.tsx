@@ -13,6 +13,8 @@ export default function TabsLayout() {
         tabBarStyle: { backgroundColor: theme.headerBackground },
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: '#8A8A8A',
+        tabBarIcon: () => null,
+        tabBarLabelStyle: { fontSize: 13, fontWeight: '700' },
       }}>
       <Tabs.Screen name="sessions" options={{ title: 'Antrenmanlar', headerShown: false }} />
       <Tabs.Screen name="players" options={{ title: 'Oyuncular', headerShown: false }} />

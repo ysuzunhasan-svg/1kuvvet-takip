@@ -6,17 +6,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { SESSION_TYPE_LABEL } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
 import { usePlayerEntries } from '@/features/entries/hooks';
 import type { PlayerEntryWithSession } from '@/features/entries/api';
 import { usePlayer } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
-
-const SESSION_TYPE_LABEL: Record<SessionType, string> = {
-  pre_activation: 'Salon Aktivasyonu',
-  post_strength: 'Kuvvet Antrenmanı',
-};
 
 interface SessionGroup {
   sessionKey: string;

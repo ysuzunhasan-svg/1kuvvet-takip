@@ -13,7 +13,7 @@ import { useExercises } from '@/features/exercises/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useSession } from '@/features/sessions/hooks';
 import { useTheme } from '@/hooks/use-theme';
-import type { ExerciseCategory } from '@/types/database';
+import type { ExerciseCategory, SessionType } from '@/types/database';
 
 interface RowState {
   key: string;
@@ -27,9 +27,10 @@ function newRow(): RowState {
   return { key: Math.random().toString(36).slice(2), exerciseId: null, sets: '3', repsPerSet: '10', loadKg: '' };
 }
 
-const SESSION_TYPE_TO_CATEGORY: Record<string, ExerciseCategory> = {
-  pre_activation: 'activation',
-  post_strength: 'strength',
+// 'individual' (Bireysel) için kategori filtresi yok — tüm hareketler gösterilir.
+const SESSION_TYPE_TO_CATEGORY: Partial<Record<SessionType, ExerciseCategory>> = {
+  ptp: 'activation',
+  strength: 'strength',
 };
 
 export default function SessionEntryScreen() {
