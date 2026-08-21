@@ -40,8 +40,17 @@ export interface TrainingSession {
   id: string;
   session_date: string;
   session_type: SessionType;
+  card_key: string | null;
   notes: string | null;
   created_by: string | null;
+  created_at: string;
+}
+
+export interface SessionAttendance {
+  id: string;
+  session_id: string;
+  player_id: string;
+  attended: boolean;
   created_at: string;
 }
 

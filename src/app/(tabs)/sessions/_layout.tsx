@@ -11,10 +11,8 @@ export default function SessionsStackLayout() {
         headerTintColor: theme.headerText,
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="type/[sessionType]/index" options={{ title: 'Antrenmanlar' }} />
-      <Stack.Screen name="type/[sessionType]/new" options={{ title: 'Yeni Antrenman', presentation: 'modal' }} />
-      <Stack.Screen name="[sessionId]/index" options={{ title: 'Antrenman' }} />
-      <Stack.Screen name="[sessionId]/entry" options={{ title: 'Kayıt Ekle', presentation: 'modal' }} />
+      <Stack.Screen name="type/[sessionType]/index" options={{ title: 'Kartlar' }} />
+      <Stack.Screen name="type/[sessionType]/card/[cardKey]" options={{ title: 'Antrenman Kartı' }} />
     </Stack>
   );
 }
