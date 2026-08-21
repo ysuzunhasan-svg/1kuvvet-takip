@@ -23,12 +23,12 @@ export default function PlayersScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <View style={styles.header}>
           <ThemedText type="subtitle">Oyuncular</ThemedText>
           <Link href="/players/new" asChild>
-            <Pressable style={{ ...styles.newButton, backgroundColor: theme.text }}>
-              <ThemedText themeColor="background" type="smallBold">
+            <Pressable style={{ ...styles.newButton, backgroundColor: theme.accent }}>
+              <ThemedText themeColor="onAccent" type="smallBold">
                 + Oyuncu Ekle
               </ThemedText>
             </Pressable>

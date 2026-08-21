@@ -22,14 +22,14 @@ export default function SessionsScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <View style={styles.header}>
           <ThemedText type="subtitle" style={styles.title}>
             Antrenmanlar
           </ThemedText>
           <Link href="/sessions/new" asChild>
-            <Pressable style={{ ...styles.newButton, backgroundColor: theme.text }}>
-              <ThemedText themeColor="background" type="smallBold">
+            <Pressable style={{ ...styles.newButton, backgroundColor: theme.accent }}>
+              <ThemedText themeColor="onAccent" type="smallBold">
                 + Yeni Antrenman
               </ThemedText>
             </Pressable>

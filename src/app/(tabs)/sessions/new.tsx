@@ -97,9 +97,9 @@ export default function NewSessionScreen() {
           disabled={createSession.isPending || !sessionDate}
           style={({ pressed }) => [
             styles.button,
-            { backgroundColor: theme.text, opacity: createSession.isPending ? 0.5 : pressed ? 0.8 : 1 },
+            { backgroundColor: theme.accent, opacity: createSession.isPending ? 0.5 : pressed ? 0.8 : 1 },
           ]}>
-          <ThemedText themeColor="background" type="smallBold">
+          <ThemedText themeColor="onAccent" type="smallBold">
             {createSession.isPending ? 'Oluşturuluyor...' : 'Antrenmanı Oluştur'}
           </ThemedText>
         </Pressable>

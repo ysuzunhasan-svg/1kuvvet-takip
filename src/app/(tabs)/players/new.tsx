@@ -60,10 +60,10 @@ export default function NewPlayerScreen() {
           disabled={disabled}
           style={{
             ...styles.button,
-            backgroundColor: theme.text,
+            backgroundColor: theme.accent,
             opacity: disabled ? 0.5 : 1,
           }}>
-          <ThemedText themeColor="background" type="smallBold">
+          <ThemedText themeColor="onAccent" type="smallBold">
             {createPlayer.isPending ? 'Ekleniyor...' : 'Oyuncuyu Ekle'}
           </ThemedText>
         </Pressable>

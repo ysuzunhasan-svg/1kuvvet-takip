@@ -8,11 +8,11 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: theme.background },
-        headerTintColor: theme.text,
-        tabBarStyle: { backgroundColor: theme.background },
-        tabBarActiveTintColor: theme.text,
-        tabBarInactiveTintColor: theme.textSecondary,
+        headerStyle: { backgroundColor: theme.headerBackground },
+        headerTintColor: theme.headerText,
+        tabBarStyle: { backgroundColor: theme.headerBackground },
+        tabBarActiveTintColor: theme.accent,
+        tabBarInactiveTintColor: '#8A8A8A',
       }}>
       <Tabs.Screen name="sessions" options={{ title: 'Antrenmanlar', headerShown: false }} />
       <Tabs.Screen name="players" options={{ title: 'Oyuncular', headerShown: false }} />

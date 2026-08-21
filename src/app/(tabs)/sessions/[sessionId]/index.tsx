@@ -61,8 +61,8 @@ export default function SessionDetailScreen() {
         ) : null}
 
         <Link href={`/sessions/${sessionId}/entry`} asChild>
-          <Pressable style={{ ...styles.addButton, backgroundColor: theme.text }}>
-            <ThemedText themeColor="background" type="smallBold">
+          <Pressable style={{ ...styles.addButton, backgroundColor: theme.accent }}>
+            <ThemedText themeColor="onAccent" type="smallBold">
               + Oyuncu Kaydı Ekle
             </ThemedText>
           </Pressable>

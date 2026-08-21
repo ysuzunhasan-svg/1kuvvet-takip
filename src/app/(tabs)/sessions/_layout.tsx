@@ -7,8 +7,8 @@ export default function SessionsStackLayout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: theme.background },
-        headerTintColor: theme.text,
+        headerStyle: { backgroundColor: theme.headerBackground },
+        headerTintColor: theme.headerText,
       }}>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="new" options={{ title: 'Yeni Antrenman', presentation: 'modal' }} />

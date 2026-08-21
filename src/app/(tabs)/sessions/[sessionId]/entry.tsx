@@ -118,9 +118,9 @@ export default function SessionEntryScreen() {
             disabled={!canSave}
             style={({ pressed }) => [
               styles.button,
-              { backgroundColor: theme.text, opacity: !canSave ? 0.5 : pressed ? 0.8 : 1 },
+              { backgroundColor: theme.accent, opacity: !canSave ? 0.5 : pressed ? 0.8 : 1 },
             ]}>
-            <ThemedText themeColor="background" type="smallBold">
+            <ThemedText themeColor="onAccent" type="smallBold">
               {createEntries.isPending ? 'Kaydediliyor...' : 'Kayıtları Kaydet'}
             </ThemedText>
           </Pressable>

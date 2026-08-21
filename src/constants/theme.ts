@@ -7,20 +7,34 @@ import '@/global.css';
 
 import { Platform } from 'react-native';
 
+// İstanbulspor kulüp renkleri: siyah + sarı.
+export const ClubColors = {
+  black: '#0A0A0A',
+  yellow: '#FFD100',
+} as const;
+
 export const Colors = {
   light: {
     text: '#000000',
     background: '#ffffff',
     backgroundElement: '#F0F0F3',
-    backgroundSelected: '#E0E1E6',
+    backgroundSelected: '#FFF3B8',
     textSecondary: '#60646C',
+    accent: ClubColors.yellow,
+    onAccent: ClubColors.black,
+    headerBackground: ClubColors.black,
+    headerText: ClubColors.yellow,
   },
   dark: {
     text: '#ffffff',
     background: '#000000',
     backgroundElement: '#212225',
-    backgroundSelected: '#2E3135',
+    backgroundSelected: '#4A3F00',
     textSecondary: '#B0B4BA',
+    accent: ClubColors.yellow,
+    onAccent: ClubColors.black,
+    headerBackground: ClubColors.black,
+    headerText: ClubColors.yellow,
   },
 } as const;
 
