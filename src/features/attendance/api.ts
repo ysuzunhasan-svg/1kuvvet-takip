@@ -41,3 +41,20 @@ export async function setAttendance(sessionId: string, playerId: string, attende
     .upsert({ session_id: sessionId, player_id: playerId, attended }, { onConflict: 'session_id,player_id' });
   if (error) throw error;
 }
+
+export interface AttendedSession {
+  session_date: string;
+  session_type: SessionType;
+}
+
+export async function listPlayerAttendedSessions(playerId: string) {
+  const { data, error } = await supabase
+    .from('session_attendance')
+    .select('training_sessions(session_date, session_type)')
+    .eq('player_id', playerId)
+    .eq('attended', true);
+  if (error) throw error;
+  return ((data ?? []) as unknown as { training_sessions: AttendedSession | null }[])
+    .map((row) => row.training_sessions)
+    .filter((s): s is AttendedSession => s !== null);
+}
