@@ -28,7 +28,7 @@ export default function SessionsScreen() {
             Antrenmanlar
           </ThemedText>
           <Link href="/sessions/new" asChild>
-            <Pressable style={[styles.newButton, { backgroundColor: theme.text }]}>
+            <Pressable style={{ ...styles.newButton, backgroundColor: theme.text }}>
               <ThemedText themeColor="background" type="smallBold">
                 + Yeni Antrenman
               </ThemedText>
@@ -50,7 +50,7 @@ export default function SessionsScreen() {
             }
             renderItem={({ item }) => (
               <Link href={`/sessions/${item.id}`} asChild>
-                <Pressable style={[styles.row, { backgroundColor: theme.backgroundElement }]}>
+                <Pressable style={{ ...styles.row, backgroundColor: theme.backgroundElement }}>
                   <View>
                     <ThemedText type="smallBold">{SESSION_TYPE_LABEL[item.session_type]}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">

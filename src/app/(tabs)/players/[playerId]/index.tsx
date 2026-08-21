@@ -63,7 +63,7 @@ export default function PlayerDetailScreen() {
         ) : null}
 
         <Link href={`/players/${playerId}/report`} asChild>
-          <Pressable style={[styles.reportButton, { backgroundColor: theme.text }]}>
+          <Pressable style={{ ...styles.reportButton, backgroundColor: theme.text }}>
             <ThemedText themeColor="background" type="smallBold">
               Kümülatif Kas Grubu Raporu
             </ThemedText>

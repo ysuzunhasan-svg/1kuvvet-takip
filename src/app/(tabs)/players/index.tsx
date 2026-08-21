@@ -46,7 +46,7 @@ export default function PlayersScreen() {
             }
             renderItem={({ item }) => (
               <Link href={`/players/${item.id}`} asChild>
-                <Pressable style={[styles.row, { backgroundColor: theme.backgroundElement }]}>
+                <Pressable style={{ ...styles.row, backgroundColor: theme.backgroundElement }}>
                   <View>
                     <ThemedText type="smallBold">{item.full_name}</ThemedText>
                     {item.position ? (
