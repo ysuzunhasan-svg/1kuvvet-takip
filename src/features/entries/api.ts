@@ -39,7 +39,6 @@ export async function listEntriesForPlayer(playerId: string) {
 }
 
 export async function createEntries(sessionId: string, playerId: string, rows: NewEntryRow[]) {
-  const { data: userData } = await supabase.auth.getUser();
   const payload = rows.map((row) => ({
     session_id: sessionId,
     player_id: playerId,
@@ -47,7 +46,6 @@ export async function createEntries(sessionId: string, playerId: string, rows: N
     sets: row.sets,
     reps_per_set: row.reps_per_set,
     load_kg: row.load_kg ?? null,
-    created_by: userData.user?.id,
   }));
   const { error } = await supabase.from('session_entries').insert(payload);
   if (error) throw error;

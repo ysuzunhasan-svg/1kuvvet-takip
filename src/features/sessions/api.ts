@@ -24,12 +24,7 @@ export interface CreateSessionInput {
 }
 
 export async function createSession(input: CreateSessionInput) {
-  const { data: userData } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from('training_sessions')
-    .insert({ ...input, created_by: userData.user?.id })
-    .select()
-    .single();
+  const { data, error } = await supabase.from('training_sessions').insert(input).select().single();
   if (error) throw error;
   return data as TrainingSession;
 }

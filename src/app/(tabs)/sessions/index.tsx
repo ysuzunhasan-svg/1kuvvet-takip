@@ -4,7 +4,6 @@ import { Link } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { RoleGate } from '@/components/RoleGate';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -28,15 +27,13 @@ export default function SessionsScreen() {
           <ThemedText type="subtitle" style={styles.title}>
             Antrenmanlar
           </ThemedText>
-          <RoleGate>
-            <Link href="/sessions/new" asChild>
-              <Pressable style={[styles.newButton, { backgroundColor: theme.text }]}>
-                <ThemedText themeColor="background" type="smallBold">
-                  + Yeni Antrenman
-                </ThemedText>
-              </Pressable>
-            </Link>
-          </RoleGate>
+          <Link href="/sessions/new" asChild>
+            <Pressable style={[styles.newButton, { backgroundColor: theme.text }]}>
+              <ThemedText themeColor="background" type="smallBold">
+                + Yeni Antrenman
+              </ThemedText>
+            </Pressable>
+          </Link>
         </View>
 
         {isLoading ? (

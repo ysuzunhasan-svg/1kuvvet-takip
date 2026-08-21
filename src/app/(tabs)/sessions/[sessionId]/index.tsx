@@ -4,7 +4,6 @@ import { Link, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { RoleGate } from '@/components/RoleGate';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
@@ -61,15 +60,13 @@ export default function SessionDetailScreen() {
           </View>
         ) : null}
 
-        <RoleGate>
-          <Link href={`/sessions/${sessionId}/entry`} asChild>
-            <Pressable style={[styles.addButton, { backgroundColor: theme.text }]}>
-              <ThemedText themeColor="background" type="smallBold">
-                + Oyuncu Kaydı Ekle
-              </ThemedText>
-            </Pressable>
-          </Link>
-        </RoleGate>
+        <Link href={`/sessions/${sessionId}/entry`} asChild>
+          <Pressable style={[styles.addButton, { backgroundColor: theme.text }]}>
+            <ThemedText themeColor="background" type="smallBold">
+              + Oyuncu Kaydı Ekle
+            </ThemedText>
+          </Pressable>
+        </Link>
 
         {isLoading ? (
           <ActivityIndicator style={{ marginTop: Spacing.four }} />
