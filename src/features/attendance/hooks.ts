@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { getOrCreateCardSession, listAttendance, listPlayerAttendedSessions, setAttendance } from './api';
+import {
+  getOrCreateCardSession,
+  listAttendance,
+  listPlayerAttendedSessions,
+  setAttendanceBulk,
+} from './api';
 import type { SessionType } from '@/types/database';
 
 export function useCardSession(sessionType: SessionType, cardKey: string, date: string) {
@@ -18,12 +23,14 @@ export function useAttendance(sessionId: string | undefined) {
   });
 }
 
-export function useSetAttendance(sessionId: string) {
+export function useSaveAttendance(sessionId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ playerId, attended }: { playerId: string; attended: boolean }) =>
-      setAttendance(sessionId, playerId, attended),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['attendance', sessionId] }),
+    mutationFn: (rows: { playerId: string; attended: boolean }[]) => setAttendanceBulk(sessionId, rows),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['player-attended-sessions'] });
+    },
   });
 }
 

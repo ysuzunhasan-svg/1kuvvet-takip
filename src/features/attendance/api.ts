@@ -42,6 +42,14 @@ export async function setAttendance(sessionId: string, playerId: string, attende
   if (error) throw error;
 }
 
+export async function setAttendanceBulk(sessionId: string, rows: { playerId: string; attended: boolean }[]) {
+  const payload = rows.map((row) => ({ session_id: sessionId, player_id: row.playerId, attended: row.attended }));
+  const { error } = await supabase
+    .from('session_attendance')
+    .upsert(payload, { onConflict: 'session_id,player_id' });
+  if (error) throw error;
+}
+
 export interface AttendedSession {
   session_date: string;
   session_type: SessionType;
