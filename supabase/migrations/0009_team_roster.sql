@@ -1,0 +1,38 @@
+-- İstanbulspor takım kadrosu (ATLETİK PERFORMANS/İstanbulspor/TAKIM/TAKIM KADROSU.xlsx dosyasından).
+
+insert into public.players (full_name, position)
+values
+  ('ALIEU CHAM', 'SLK'),
+  ('ALP TUTAR', 'KL'),
+  ('BERK ALİ NİZAM', 'SLK'),
+  ('DEMEACO DUHANEY', 'SĞB'),
+  ('DEMİR MERMERCİ', 'STP'),
+  ('DİJLAN AYDIN', 'OS'),
+  ('DURAN ŞAHİN', 'STP'),
+  ('ELVİN MENDY', 'STP-DOS'),
+  ('ENVER SARIALİOĞLU', 'STP'),
+  ('ERDEM SEÇGİN', 'OS'),
+  ('EREN AKYOL', 'STP'),
+  ('ERTUĞRUL SANDIKÇI', 'SNT'),
+  ('FATİH TULTAK', 'STP'),
+  ('FURKAN ÇİFTÇİ', 'DOS'),
+  ('ILIAN JR ILIEV', 'SĞK'),
+  ('İSA DAYAKLI', 'DOS'),
+  ('İSA DOĞAN', 'KL'),
+  ('KAAN AKDAĞ', 'KL'),
+  ('MARIO KRSTOVSKI', 'SNT'),
+  ('MICHAEL OLOGO', 'STP'),
+  ('MUHLİS DAĞAŞAN', 'SĞB'),
+  ('MUSTAFA SOL', 'SNT'),
+  ('MÜCAHİT SERBEST', 'KL'),
+  ('NJIE', 'SĞK-SLK'),
+  ('ÖMER FARUK DUYMAZ', 'OOS'),
+  ('ÖZCAN ŞAHAN', 'SĞB'),
+  ('PHILIPE CARDOSO', 'OOS'),
+  ('SONER SALİH YAVUZ', 'OOS'),
+  ('TURAN DENİZ TUNCER', 'SLB'),
+  ('VEFA TEMEL', 'OS'),
+  ('YAKUPHAN SARIALİOĞLU', 'STP'),
+  ('YORRO SAVAGE', 'OS'),
+  ('YUSUF ALİ ÖZER', 'SLB')
+on conflict do nothing;
