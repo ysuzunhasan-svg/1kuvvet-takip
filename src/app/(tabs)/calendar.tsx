@@ -47,12 +47,13 @@ export default function CalendarScreen() {
   const rangeEnd = format(gridEnd, 'yyyy-MM-dd');
   const { data: sessionDates } = useSessionDatesInRange(rangeStart, rangeEnd);
 
-  // Her tarih için o günkü kart(lar)ın kısa etiketini (M-4, MD-3, ...) çıkar.
+  // Her tarih için o günkü kart(lar)ın etiketini (M-4 PTP, MD-3 PTP, ...) çıkar.
   const labelsByDate = useMemo(() => {
     const map = new Map<string, string[]>();
     (sessionDates ?? []).forEach((s) => {
       const card = s.card_key ? getCardByKey(s.card_key) : undefined;
-      const label = card?.dayCode ?? SESSION_TYPE_LABEL[s.session_type];
+      const dayCode = card?.dayCode ?? s.card_key ?? '';
+      const label = `${dayCode} ${SESSION_TYPE_LABEL[s.session_type]}`.trim();
       const existing = map.get(s.session_date) ?? [];
       if (!existing.includes(label)) existing.push(label);
       map.set(s.session_date, existing);
@@ -116,13 +117,20 @@ export default function CalendarScreen() {
                       {format(day, 'd')}
                     </ThemedText>
                     {labels.slice(0, 2).map((label) => (
-                      <ThemedText
-                        key={label}
-                        themeColor={selected ? 'onAccent' : 'accent'}
-                        numberOfLines={1}
-                        style={styles.cardLabel}>
-                        {label}
-                      </ThemedText>
+                      <View key={label} style={styles.labelRow}>
+                        <View
+                          style={{
+                            ...styles.labelDot,
+                            backgroundColor: selected ? theme.onAccent : theme.accent,
+                          }}
+                        />
+                        <ThemedText
+                          themeColor={selected ? 'onAccent' : 'text'}
+                          numberOfLines={1}
+                          style={styles.cardLabel}>
+                          {label}
+                        </ThemedText>
+                      </View>
                     ))}
                   </View>
                 </Pressable>
@@ -191,17 +199,20 @@ const styles = StyleSheet.create({
   weekdayRow: { flexDirection: 'row', marginBottom: Spacing.one },
   weekdayCell: { flex: 1, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCellWrap: { width: `${100 / 7}%`, padding: 10 },
+  dayCellWrap: { width: `${100 / 7}%`, padding: 13 },
   dayCell: {
     aspectRatio: 1,
-    alignItems: 'center',
+    alignItems: 'stretch',
     justifyContent: 'center',
     borderRadius: Spacing.one,
+    paddingHorizontal: 3,
     gap: 1,
   },
-  dayNumber: { fontSize: 10, lineHeight: 11, fontWeight: '600' },
+  dayNumber: { fontSize: 9, lineHeight: 10, fontWeight: '600', textAlign: 'center' },
   dimmed: { opacity: 0.35 },
-  cardLabel: { fontSize: 6.5, lineHeight: 7, fontWeight: '800' },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  labelDot: { width: 4, height: 4, borderRadius: 2, flexShrink: 0 },
+  cardLabel: { fontSize: 5.5, lineHeight: 6.5, fontWeight: '700', flexShrink: 1 },
   daySection: { marginTop: Spacing.four },
   sessionRow: {
     flexDirection: 'row',
