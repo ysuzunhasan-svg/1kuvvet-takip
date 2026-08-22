@@ -12,10 +12,9 @@ import { DATE_RANGE_PRESETS, type DateRangePreset, presetToRange } from '@/featu
 import { usePlayerMuscleGroupVolume } from '@/features/reports/hooks';
 import { useTheme } from '@/hooks/use-theme';
 
-// Bu sayfada iki kart yan yana yeterince geniş olmadan sıkışmasın diye
-// genel DESKTOP_BREAKPOINT'ten daha yüksek bir eşik kullanılıyor
-// (vücut haritası + pasta grafik doğal genişlikleriyle rahat sığmalı).
-const DESKTOP_BREAKPOINT = 900;
+// Ön + arka vücut kartı yan yana yeterince geniş olmadan sıkışmasın diye
+// genel DESKTOP_BREAKPOINT'ten daha yüksek bir eşik kullanılıyor.
+const BODY_ROW_BREAKPOINT = 1100;
 
 export default function PlayerReportScreen() {
   const { playerId } = useLocalSearchParams<{ playerId: string }>();
@@ -24,7 +23,7 @@ export default function PlayerReportScreen() {
   const { data, isLoading } = usePlayerMuscleGroupVolume(playerId, range);
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
-  const isWide = windowWidth >= DESKTOP_BREAKPOINT;
+  const isBodyRowWide = windowWidth >= BODY_ROW_BREAKPOINT;
 
   return (
     <ThemedView style={styles.container}>
@@ -47,28 +46,40 @@ export default function PlayerReportScreen() {
           {isLoading ? (
             <ActivityIndicator style={{ marginTop: Spacing.four }} />
           ) : (
-            <View style={isWide ? styles.reportRowWide : styles.reportRowNarrow}>
-              <View
-                style={[
-                  styles.chartCard,
-                  isWide && styles.chartCardBodyWide,
-                  { backgroundColor: theme.backgroundElement },
-                ]}>
-                <ThemedText type="smallBold" style={{ marginBottom: Spacing.three }}>
-                  Kas haritası — antrenman sayısı
-                </ThemedText>
-                <View style={styles.bodyDiagramWrap}>
-                  <BodyMuscleDiagram data={data ?? []} />
+            <>
+              <View style={isBodyRowWide ? styles.bodyRowWide : styles.bodyRowNarrow}>
+                <View
+                  style={[styles.chartCard, isBodyRowWide && styles.chartCardBodyWide, styles.bodyCard]}>
+                  <ThemedText type="smallBold" style={styles.bodyCardTitle}>
+                    Kas haritası — ön görünüm
+                  </ThemedText>
+                  <View style={styles.bodyDiagramWrap}>
+                    <BodyMuscleDiagram data={data ?? []} view="front" />
+                  </View>
+                </View>
+
+                <View
+                  style={[styles.chartCard, isBodyRowWide && styles.chartCardBodyWide, styles.bodyCard]}>
+                  <ThemedText type="smallBold" style={styles.bodyCardTitle}>
+                    Kas haritası — arka görünüm
+                  </ThemedText>
+                  <View style={styles.bodyDiagramWrap}>
+                    <BodyMuscleDiagram data={data ?? []} view="back" />
+                  </View>
                 </View>
               </View>
 
-              <View style={[styles.chartCard, isWide && styles.chartCardWide, { backgroundColor: theme.backgroundElement }]}>
+              <ThemedText type="small" themeColor="textSecondary" style={styles.attribution}>
+                Kas illüstrasyonu: Wikimedia Commons (CC BY-SA 3.0)
+              </ThemedText>
+
+              <View style={[styles.chartCard, styles.pieCard, { backgroundColor: theme.backgroundElement }]}>
                 <ThemedText type="smallBold" style={{ marginBottom: Spacing.three }}>
                   Kümülatif dağılım
                 </ThemedText>
                 <MuscleGroupPieChart data={data ?? []} />
               </View>
-            </View>
+            </>
           )}
         </ScrollView>
       </SafeAreaView>
@@ -82,10 +93,13 @@ const styles = StyleSheet.create({
   scrollContent: { gap: Spacing.four, paddingBottom: Spacing.six },
   presetRow: { flexDirection: 'row', gap: Spacing.two, flexWrap: 'wrap' },
   presetButton: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: Spacing.two },
-  reportRowNarrow: { gap: Spacing.four },
-  reportRowWide: { flexDirection: 'row', gap: Spacing.four, alignItems: 'flex-start' },
+  bodyRowNarrow: { gap: Spacing.four },
+  bodyRowWide: { flexDirection: 'row', gap: Spacing.four, alignItems: 'flex-start' },
   chartCard: { padding: Spacing.three, borderRadius: Spacing.three },
   chartCardBodyWide: { width: BODY_DIAGRAM_WIDTH + Spacing.three * 2 },
-  chartCardWide: { flexShrink: 0 },
+  bodyCard: { backgroundColor: '#f2ece3' },
+  bodyCardTitle: { marginBottom: Spacing.three, color: '#1a1a19' },
   bodyDiagramWrap: { alignItems: 'center' },
+  attribution: { marginTop: -Spacing.two, textAlign: 'right' },
+  pieCard: { alignSelf: 'flex-start', minWidth: 320 },
 });

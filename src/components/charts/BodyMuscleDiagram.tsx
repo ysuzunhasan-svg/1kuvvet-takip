@@ -1,71 +1,54 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G, Line, Path } from 'react-native-svg';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, G, Line } from 'react-native-svg';
 
 import { ClubColors, Spacing } from '@/constants/theme';
 import { muscleGroupLabel } from '@/constants/muscleGroups';
 
-export const BODY_DIAGRAM_WIDTH = 420;
+// Gerçek anatomik kas illüstrasyonu (Wikimedia Commons, "Muscular system" /
+// "Muscular system-back", CC BY-SA 3.0, Termininja) — 700x980, oran 700/980.
+const FRONT_IMAGE = require('@/assets/images/muscle-front.png');
+const BACK_IMAGE = require('@/assets/images/muscle-back.png');
+const IMAGE_ASPECT = 700 / 980;
+
+export const BODY_DIAGRAM_WIDTH = 560;
 const WIDTH = BODY_DIAGRAM_WIDTH;
-const HEIGHT = 500;
+const LEFT_LABEL_WIDTH = 122;
+const RIGHT_LABEL_WIDTH = 122;
+const GAP = 10;
+const IMAGE_WIDTH = WIDTH - LEFT_LABEL_WIDTH - RIGHT_LABEL_WIDTH - GAP * 2;
+const IMAGE_HEIGHT = IMAGE_WIDTH / IMAGE_ASPECT;
+const HEIGHT = IMAGE_HEIGHT;
+const IMAGE_LEFT = LEFT_LABEL_WIDTH + GAP;
 
 interface MarkerConfig {
   side: 'left' | 'right';
-  dotX: number;
-  dotY: number;
-  labelY: number;
+  xPct: number;
+  yPct: number;
 }
 
-// Ön-görünüm vücut üzerinde yaklaşık konumlar. Her grup kendi tarafında
-// (merkez x=210'un solunda/sağında) kalacak şekilde seçildi ki işaret
-// çizgileri birbirini çaprazlamasın; dotY sırası da labelY sırasıyla aynı
-// yönde artıyor (aynı taraftaki çizgiler de kesişmesin diye).
-const MARKERS: Record<string, MarkerConfig> = {
-  upper_back: { side: 'left', dotX: 165, dotY: 95, labelY: 86 },
-  biceps: { side: 'left', dotX: 95, dotY: 150, labelY: 148 },
-  core: { side: 'left', dotX: 185, dotY: 175, labelY: 192 },
-  hip_flexors: { side: 'left', dotX: 175, dotY: 208, labelY: 236 },
-  hip_adductors: { side: 'left', dotX: 185, dotY: 260, labelY: 280 },
-  quadriceps: { side: 'left', dotX: 165, dotY: 300, labelY: 328 },
-  calves: { side: 'left', dotX: 150, dotY: 390, labelY: 400 },
-  shoulders: { side: 'right', dotX: 275, dotY: 95, labelY: 90 },
-  chest: { side: 'right', dotX: 245, dotY: 130, labelY: 138 },
-  triceps: { side: 'right', dotX: 325, dotY: 150, labelY: 190 },
-  lower_back: { side: 'right', dotX: 240, dotY: 185, labelY: 238 },
-  glutes: { side: 'right', dotX: 245, dotY: 208, labelY: 284 },
-  hip_abductors: { side: 'right', dotX: 262, dotY: 250, labelY: 330 },
-  hamstrings: { side: 'right', dotX: 255, dotY: 300, labelY: 400 },
+// Yüzdelik konumlar kaynak görsel üzerinde ızgara ile elle kalibre edildi
+// (görselin kendi genişlik/yüksekliğine göre 0-1 arası). Ön görünümden
+// görünmeyen kaslar (sırt, kalça, arka bacak) arka görünüme kondu.
+const FRONT_MARKERS: Record<string, MarkerConfig> = {
+  chest: { side: 'left', xPct: 0.42, yPct: 0.28 },
+  core: { side: 'left', xPct: 0.46, yPct: 0.41 },
+  hip_adductors: { side: 'left', xPct: 0.46, yPct: 0.6 },
+  shoulders: { side: 'right', xPct: 0.63, yPct: 0.21 },
+  biceps: { side: 'right', xPct: 0.71, yPct: 0.36 },
+  hip_flexors: { side: 'right', xPct: 0.54, yPct: 0.51 },
+  quadriceps: { side: 'right', xPct: 0.59, yPct: 0.65 },
 };
 
-const LEFT_LABEL_X = 6;
-const LEFT_LABEL_WIDTH = 118;
-const RIGHT_LABEL_X = 300;
-const RIGHT_LABEL_WIDTH = 118;
-
-// Gövde silueti tek bir kapalı path — omuzdan (en geniş nokta) belе, oradan
-// kalçaya kavisle daralıp genişleyen düz bir "kum saati" hattı (monoton
-// eğriler, taşma/çentik yaratacak kontrol noktası yok).
-const TORSO_PATH = `
-  M182,58
-  C160,62 130,74 130,96
-  C130,126 150,141 168,156
-  C160,171 152,191 148,206
-  L272,206
-  C268,191 260,171 252,156
-  C270,141 290,126 290,96
-  C290,74 260,62 238,58
-  Z
-`;
-
-// Kollar ve bacaklar: düz daralan yamuklar (trapezoid) — eğrili versiyon
-// pergel gibi dışa şişip görünüyordu, düz kenar çok daha doğal duruyor.
-// Üst köşe torsonun omuz eğrisine bilerek fazla giriyor (aynı renk
-// olduğundan görünmez) — böylece kol-gövde birleşiminde çentik kalmıyor.
-const LEFT_ARM_PATH = 'M92,90 L84,256 L108,254 L148,82 Z';
-const RIGHT_ARM_PATH = 'M328,90 L336,256 L312,254 L272,82 Z';
-
-const LEFT_LEG_PATH = 'M148,206 L140,444 L172,444 L200,206 Z';
-const RIGHT_LEG_PATH = 'M272,206 L280,444 L248,444 L220,206 Z';
+const BACK_MARKERS: Record<string, MarkerConfig> = {
+  upper_back: { side: 'left', xPct: 0.39, yPct: 0.26 },
+  lower_back: { side: 'left', xPct: 0.44, yPct: 0.45 },
+  glutes: { side: 'left', xPct: 0.41, yPct: 0.52 },
+  hamstrings: { side: 'left', xPct: 0.38, yPct: 0.64 },
+  triceps: { side: 'right', xPct: 0.72, yPct: 0.37 },
+  hip_abductors: { side: 'right', xPct: 0.67, yPct: 0.49 },
+  calves: { side: 'right', xPct: 0.62, yPct: 0.8 },
+};
 
 export interface BodyMuscleDatum {
   muscle_group_name: string;
@@ -74,10 +57,13 @@ export interface BodyMuscleDatum {
 
 interface BodyMuscleDiagramProps {
   data: BodyMuscleDatum[];
+  view: 'front' | 'back';
 }
 
-export function BodyMuscleDiagram({ data }: BodyMuscleDiagramProps) {
-  const activeRows = data.filter((d) => d.session_count > 0 && MARKERS[d.muscle_group_name]);
+export function BodyMuscleDiagram({ data, view }: BodyMuscleDiagramProps) {
+  const markers = view === 'front' ? FRONT_MARKERS : BACK_MARKERS;
+  const image = view === 'front' ? FRONT_IMAGE : BACK_IMAGE;
+  const activeRows = data.filter((d) => d.session_count > 0 && markers[d.muscle_group_name]);
   const [containerWidth, setContainerWidth] = useState(WIDTH);
   const scale = containerWidth / WIDTH;
 
@@ -85,51 +71,48 @@ export function BodyMuscleDiagram({ data }: BodyMuscleDiagramProps) {
     <View
       onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
       style={{ width: '100%', maxWidth: WIDTH, aspectRatio: WIDTH / HEIGHT }}>
-      <Svg width={WIDTH * scale} height={HEIGHT * scale} viewBox={`0 0 ${WIDTH} ${HEIGHT}`}>
-        {/* Vücut silueti */}
-        <Circle cx={210} cy={36} r={26} fill={ClubColors.yellow} />
-        <Path d="M190,56 L230,56 L230,70 L190,70 Z" fill={ClubColors.yellow} />
-        <Path d={LEFT_ARM_PATH} fill={ClubColors.yellow} />
-        <Path d={RIGHT_ARM_PATH} fill={ClubColors.yellow} />
-        <Path d={LEFT_LEG_PATH} fill={ClubColors.yellow} />
-        <Path d={RIGHT_LEG_PATH} fill={ClubColors.yellow} />
-        <Path d={TORSO_PATH} fill={ClubColors.yellow} />
+      <View
+        style={{
+          position: 'absolute',
+          left: IMAGE_LEFT * scale,
+          top: 0,
+          width: IMAGE_WIDTH * scale,
+          height: IMAGE_HEIGHT * scale,
+          borderRadius: 6 * scale,
+          overflow: 'hidden',
+          backgroundColor: '#fbf6f0',
+        }}>
+        <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+      </View>
 
-        {/* Aktif kas gruplarının işaret çizgileri + noktaları */}
+      <Svg width={WIDTH * scale} height={HEIGHT * scale} viewBox={`0 0 ${WIDTH} ${HEIGHT}`} style={{ position: 'absolute', top: 0, left: 0 }}>
         {activeRows.map((row) => {
-          const marker = MARKERS[row.muscle_group_name];
-          const lineEndX = marker.side === 'left' ? LEFT_LABEL_X + LEFT_LABEL_WIDTH : RIGHT_LABEL_X;
+          const marker = markers[row.muscle_group_name];
+          const dotX = IMAGE_LEFT + marker.xPct * IMAGE_WIDTH;
+          const dotY = marker.yPct * IMAGE_HEIGHT;
+          const lineEndX = marker.side === 'left' ? LEFT_LABEL_WIDTH : WIDTH - RIGHT_LABEL_WIDTH;
           return (
             <G key={row.muscle_group_name}>
-              <Line
-                x1={marker.dotX}
-                y1={marker.dotY}
-                x2={lineEndX}
-                y2={marker.labelY}
-                stroke="rgba(10,10,10,0.85)"
-                strokeWidth={1.5}
-              />
-              <Circle cx={lineEndX} cy={marker.labelY} r={3} fill={ClubColors.black} />
-              <Circle cx={marker.dotX} cy={marker.dotY} r={5} fill={ClubColors.black} stroke="#ffffff" strokeWidth={1.5} />
+              <Line x1={dotX} y1={dotY} x2={lineEndX} y2={dotY} stroke="rgba(20,20,20,0.85)" strokeWidth={1.5} />
+              <Circle cx={lineEndX} cy={dotY} r={3} fill={ClubColors.black} />
+              <Circle cx={dotX} cy={dotY} r={5} fill={ClubColors.yellow} stroke="#1a1a19" strokeWidth={1.5} />
             </G>
           );
         })}
       </Svg>
 
-      {/* Etiketler (metin sarmalama için SVG üstüne bindirilmiş normal View/Text) */}
       {activeRows.map((row) => {
-        const marker = MARKERS[row.muscle_group_name];
+        const marker = markers[row.muscle_group_name];
         const isLeft = marker.side === 'left';
-        const labelX = (isLeft ? LEFT_LABEL_X : RIGHT_LABEL_X) * scale;
-        const labelWidth = (isLeft ? LEFT_LABEL_WIDTH : RIGHT_LABEL_WIDTH) * scale;
+        const dotY = marker.yPct * IMAGE_HEIGHT;
         return (
           <View
             key={row.muscle_group_name}
             style={{
               position: 'absolute',
-              top: (marker.labelY - 16) * scale,
-              left: labelX,
-              width: labelWidth,
+              top: (dotY - 16) * scale,
+              left: (isLeft ? 0 : WIDTH - RIGHT_LABEL_WIDTH) * scale,
+              width: (isLeft ? LEFT_LABEL_WIDTH : RIGHT_LABEL_WIDTH) * scale,
               alignItems: isLeft ? 'flex-end' : 'flex-start',
             }}>
             <View style={[styles.labelBacking, { alignItems: isLeft ? 'flex-end' : 'flex-start' }]}>
@@ -157,7 +140,7 @@ export function BodyMuscleDiagram({ data }: BodyMuscleDiagramProps) {
 
 const styles = StyleSheet.create({
   labelBacking: {
-    backgroundColor: 'rgba(10,10,10,0.72)',
+    backgroundColor: 'rgba(10,10,10,0.78)',
     borderRadius: 4,
     paddingHorizontal: 4,
     paddingVertical: 2,
