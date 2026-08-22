@@ -32,6 +32,8 @@ const styles = StyleSheet.create({
   wrapper: {
     backgroundColor: ClubColors.black,
     zIndex: 10,
+    borderBottomWidth: 3,
+    borderBottomColor: ClubColors.yellow,
     // "Katman" hissi: içeriğin tamamı siyah olduğu için header'ın öne çıkması
     // için hafif bir gölge/derinlik veriyoruz.
     shadowColor: '#000000',

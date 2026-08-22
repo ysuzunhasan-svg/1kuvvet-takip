@@ -28,11 +28,14 @@ import { useTheme } from '@/hooks/use-theme';
 
 const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const CALENDAR_MAX_WIDTH = 420;
+const DAY_COLUMN_MAX_WIDTH = 480;
+const DESKTOP_BREAKPOINT = 760;
 const CELL_MARGIN = 5;
 
 export default function CalendarScreen() {
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
+  const isWide = windowWidth >= DESKTOP_BREAKPOINT;
   // Genişlik yüzdesi + aspectRatio geniş (masaüstü) ekranlarda kutucukları dev
   // boyuta çıkarıyordu — bunun yerine piksel bazlı, telefon genişliğine
   // sabitlenmiş bir hesap kullanıyoruz.
@@ -74,126 +77,139 @@ export default function CalendarScreen() {
   const { data: players } = usePlayers();
   const totalPlayers = players?.length ?? 0;
 
+  const calendarBlock = (
+    <View style={isWide ? { width: CALENDAR_MAX_WIDTH } : styles.narrowCentered}>
+      <ThemedText type="subtitle" style={styles.title}>
+        Takvim
+      </ThemedText>
+
+      <View style={styles.monthHeader}>
+        <Pressable onPress={() => setVisibleMonth((m) => subMonths(m, 1))} hitSlop={12}>
+          <ThemedText type="subtitle" themeColor="accent">
+            ‹
+          </ThemedText>
+        </Pressable>
+        <ThemedText type="smallBold" style={styles.monthLabel}>
+          {format(visibleMonth, 'MMMM yyyy', { locale: tr })}
+        </ThemedText>
+        <Pressable onPress={() => setVisibleMonth((m) => addMonths(m, 1))} hitSlop={12}>
+          <ThemedText type="subtitle" themeColor="accent">
+            ›
+          </ThemedText>
+        </Pressable>
+      </View>
+
+      <View style={styles.weekdayRow}>
+        {WEEKDAY_LABELS.map((d) => (
+          <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.weekdayCell}>
+            {d}
+          </ThemedText>
+        ))}
+      </View>
+
+      <View style={styles.grid}>
+        {days.map((day) => {
+          const dateKey = format(day, 'yyyy-MM-dd');
+          const inMonth = isSameMonth(day, visibleMonth);
+          const selected = dateKey === selectedDate;
+          const today = isToday(day);
+          const labels = labelsByDate.get(dateKey) ?? [];
+          return (
+            <Pressable
+              key={dateKey}
+              onPress={() => selectDate(dateKey)}
+              style={{ width: columnWidth, padding: CELL_MARGIN }}>
+              <View
+                style={{
+                  ...styles.dayCell,
+                  width: cellSize,
+                  height: cellSize,
+                  backgroundColor: selected ? theme.accent : today ? theme.backgroundSelected : 'transparent',
+                }}>
+                <ThemedText
+                  themeColor={selected ? 'onAccent' : 'text'}
+                  style={[styles.dayNumber, !inMonth && styles.dimmed]}>
+                  {format(day, 'd')}
+                </ThemedText>
+                {labels.slice(0, 2).map((label) => (
+                  <View key={label} style={styles.labelRow}>
+                    <View
+                      style={{
+                        ...styles.labelDot,
+                        backgroundColor: selected ? theme.onAccent : theme.accent,
+                      }}
+                    />
+                    <ThemedText themeColor={selected ? 'onAccent' : 'text'} numberOfLines={1} style={styles.cardLabel}>
+                      {label}
+                    </ThemedText>
+                  </View>
+                ))}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+
+  const dayBlock = (
+    <View style={styles.daySection}>
+      <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
+        {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })}
+      </ThemedText>
+
+      {daySessionsLoading ? (
+        <ActivityIndicator style={{ marginTop: Spacing.two }} />
+      ) : daySessions && daySessions.length > 0 ? (
+        <View style={{ gap: Spacing.two }}>
+          {daySessions.map((session) => {
+            const card = session.card_key ? getCardByKey(session.card_key) : undefined;
+            const expanded = expandedSessionId === session.id;
+            return (
+              <View key={session.id}>
+                <Pressable
+                  onPress={() => setExpandedSessionId(expanded ? null : session.id)}
+                  style={{ ...styles.sessionRow, backgroundColor: theme.backgroundElement }}>
+                  <View>
+                    <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {card?.dayCode ?? session.card_key}
+                    </ThemedText>
+                  </View>
+                  <ThemedText type="smallBold" themeColor="accent">
+                    {session.attendedCount}/{totalPlayers} katıldı
+                  </ThemedText>
+                </Pressable>
+                {expanded ? (
+                  <View style={styles.checklistWrap}>
+                    <AttendanceChecklist sessionId={session.id} />
+                  </View>
+                ) : null}
+              </View>
+            );
+          })}
+        </View>
+      ) : (
+        <ThemedText themeColor="textSecondary">Bu tarihte antrenman kaydı yok.</ThemedText>
+      )}
+    </View>
+  );
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={{ width: '100%', maxWidth: CALENDAR_MAX_WIDTH, alignSelf: 'center' }}>
-          <ThemedText type="subtitle" style={styles.title}>
-            Takvim
-          </ThemedText>
-
-          <View style={styles.monthHeader}>
-            <Pressable onPress={() => setVisibleMonth((m) => subMonths(m, 1))} hitSlop={12}>
-              <ThemedText type="subtitle" themeColor="accent">
-                ‹
-              </ThemedText>
-            </Pressable>
-            <ThemedText type="smallBold" style={styles.monthLabel}>
-              {format(visibleMonth, 'MMMM yyyy', { locale: tr })}
-            </ThemedText>
-            <Pressable onPress={() => setVisibleMonth((m) => addMonths(m, 1))} hitSlop={12}>
-              <ThemedText type="subtitle" themeColor="accent">
-                ›
-              </ThemedText>
-            </Pressable>
-          </View>
-
-          <View style={styles.weekdayRow}>
-            {WEEKDAY_LABELS.map((d) => (
-              <ThemedText key={d} type="small" themeColor="textSecondary" style={styles.weekdayCell}>
-                {d}
-              </ThemedText>
-            ))}
-          </View>
-
-          <View style={styles.grid}>
-            {days.map((day) => {
-              const dateKey = format(day, 'yyyy-MM-dd');
-              const inMonth = isSameMonth(day, visibleMonth);
-              const selected = dateKey === selectedDate;
-              const today = isToday(day);
-              const labels = labelsByDate.get(dateKey) ?? [];
-              return (
-                <Pressable
-                  key={dateKey}
-                  onPress={() => selectDate(dateKey)}
-                  style={{ width: columnWidth, padding: CELL_MARGIN }}>
-                  <View
-                    style={{
-                      ...styles.dayCell,
-                      width: cellSize,
-                      height: cellSize,
-                      backgroundColor: selected ? theme.accent : today ? theme.backgroundSelected : 'transparent',
-                    }}>
-                    <ThemedText
-                      themeColor={selected ? 'onAccent' : 'text'}
-                      style={[styles.dayNumber, !inMonth && styles.dimmed]}>
-                      {format(day, 'd')}
-                    </ThemedText>
-                    {labels.slice(0, 2).map((label) => (
-                      <View key={label} style={styles.labelRow}>
-                        <View
-                          style={{
-                            ...styles.labelDot,
-                            backgroundColor: selected ? theme.onAccent : theme.accent,
-                          }}
-                        />
-                        <ThemedText
-                          themeColor={selected ? 'onAccent' : 'text'}
-                          numberOfLines={1}
-                          style={styles.cardLabel}>
-                          {label}
-                        </ThemedText>
-                      </View>
-                    ))}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <View style={styles.daySection}>
-            <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
-              {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })}
-            </ThemedText>
-
-            {daySessionsLoading ? (
-              <ActivityIndicator style={{ marginTop: Spacing.two }} />
-            ) : daySessions && daySessions.length > 0 ? (
-              <View style={{ gap: Spacing.two }}>
-                {daySessions.map((session) => {
-                  const card = session.card_key ? getCardByKey(session.card_key) : undefined;
-                  const expanded = expandedSessionId === session.id;
-                  return (
-                    <View key={session.id}>
-                      <Pressable
-                        onPress={() => setExpandedSessionId(expanded ? null : session.id)}
-                        style={{ ...styles.sessionRow, backgroundColor: theme.backgroundElement }}>
-                        <View>
-                          <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
-                          <ThemedText type="small" themeColor="textSecondary">
-                            {card?.dayCode ?? session.card_key}
-                          </ThemedText>
-                        </View>
-                        <ThemedText type="smallBold" themeColor="accent">
-                          {session.attendedCount}/{totalPlayers} katıldı
-                        </ThemedText>
-                      </Pressable>
-                      {expanded ? (
-                        <View style={styles.checklistWrap}>
-                          <AttendanceChecklist sessionId={session.id} />
-                        </View>
-                      ) : null}
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <ThemedText themeColor="textSecondary">Bu tarihte antrenman kaydı yok.</ThemedText>
-            )}
-          </View>
-        </View>
+          {isWide ? (
+            <View style={styles.wideRow}>
+              {calendarBlock}
+              <View style={styles.wideDayColumn}>{dayBlock}</View>
+            </View>
+          ) : (
+            <View style={styles.narrowCentered}>
+              {calendarBlock}
+              {dayBlock}
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -204,6 +220,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
   scrollContent: { paddingBottom: Spacing.six },
+  narrowCentered: { width: '100%', maxWidth: CALENDAR_MAX_WIDTH, alignSelf: 'center' },
+  wideRow: { flexDirection: 'row', gap: Spacing.five, alignItems: 'flex-start' },
+  wideDayColumn: { flex: 1, maxWidth: DAY_COLUMN_MAX_WIDTH },
   title: { marginBottom: Spacing.three },
   monthHeader: {
     flexDirection: 'row',
