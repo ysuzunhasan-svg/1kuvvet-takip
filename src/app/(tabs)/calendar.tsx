@@ -13,7 +13,7 @@ import {
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AttendanceChecklist } from '@/components/AttendanceChecklist';
@@ -27,9 +27,18 @@ import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 
 const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+const CALENDAR_MAX_WIDTH = 420;
+const CELL_MARGIN = 5;
 
 export default function CalendarScreen() {
   const theme = useTheme();
+  const { width: windowWidth } = useWindowDimensions();
+  // Genişlik yüzdesi + aspectRatio geniş (masaüstü) ekranlarda kutucukları dev
+  // boyuta çıkarıyordu — bunun yerine piksel bazlı, telefon genişliğine
+  // sabitlenmiş bir hesap kullanıyoruz.
+  const contentWidth = Math.min(windowWidth, CALENDAR_MAX_WIDTH) - Spacing.three * 2;
+  const columnWidth = contentWidth / 7;
+  const cellSize = Math.max(28, columnWidth - CELL_MARGIN * 2);
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
@@ -69,6 +78,7 @@ export default function CalendarScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={{ width: '100%', maxWidth: CALENDAR_MAX_WIDTH, alignSelf: 'center' }}>
           <ThemedText type="subtitle" style={styles.title}>
             Takvim
           </ThemedText>
@@ -105,10 +115,15 @@ export default function CalendarScreen() {
               const today = isToday(day);
               const labels = labelsByDate.get(dateKey) ?? [];
               return (
-                <Pressable key={dateKey} onPress={() => selectDate(dateKey)} style={styles.dayCellWrap}>
+                <Pressable
+                  key={dateKey}
+                  onPress={() => selectDate(dateKey)}
+                  style={{ width: columnWidth, padding: CELL_MARGIN }}>
                   <View
                     style={{
                       ...styles.dayCell,
+                      width: cellSize,
+                      height: cellSize,
                       backgroundColor: selected ? theme.accent : today ? theme.backgroundSelected : 'transparent',
                     }}>
                     <ThemedText
@@ -178,6 +193,7 @@ export default function CalendarScreen() {
               <ThemedText themeColor="textSecondary">Bu tarihte antrenman kaydı yok.</ThemedText>
             )}
           </View>
+        </View>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -199,9 +215,7 @@ const styles = StyleSheet.create({
   weekdayRow: { flexDirection: 'row', marginBottom: Spacing.one },
   weekdayCell: { flex: 1, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  dayCellWrap: { width: `${100 / 7}%`, padding: 13 },
   dayCell: {
-    aspectRatio: 1,
     alignItems: 'stretch',
     justifyContent: 'center',
     borderRadius: Spacing.one,
