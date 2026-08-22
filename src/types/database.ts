@@ -68,6 +68,7 @@ export interface SessionEntry {
 
 export interface MuscleGroupVolume {
   muscle_group_name: string;
+  session_count: number;
   total_sets: number;
   total_volume: number;
 }

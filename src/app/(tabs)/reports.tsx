@@ -21,7 +21,7 @@ export default function TeamReportsScreen() {
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <ThemedText themeColor="textSecondary" type="small">
-            Tüm oyuncular birleşik — kas grubu başına toplam hacim.
+            Tüm oyuncular birleşik — kas grubu başına kaç antrenmanda çalışıldı.
           </ThemedText>
 
           <View style={styles.presetRow}>

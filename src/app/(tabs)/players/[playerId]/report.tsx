@@ -41,7 +41,7 @@ export default function PlayerReportScreen() {
           ) : (
             <View style={styles.chartCard}>
               <ThemedText type="smallBold" style={{ marginBottom: Spacing.three }}>
-                Kas grubu başına toplam hacim (set × tekrar)
+                Kas grubu başına kaç antrenmanda çalışıldı
               </ThemedText>
               <MuscleGroupBarChart data={data ?? []} />
             </View>

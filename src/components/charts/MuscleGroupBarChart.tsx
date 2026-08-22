@@ -6,7 +6,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 
 interface MuscleGroupVolumeRow {
   muscle_group_name: string;
-  total_volume: number;
+  session_count: number;
 }
 
 interface MuscleGroupBarChartProps {
@@ -24,7 +24,7 @@ const BAR_COLOR_DARK = '#3987e5';
 export function MuscleGroupBarChart({ data }: MuscleGroupBarChartProps) {
   const scheme = useColorScheme();
   const barColor = scheme === 'dark' ? BAR_COLOR_DARK : BAR_COLOR_LIGHT;
-  const maxVolume = Math.max(1, ...data.map((d) => d.total_volume));
+  const maxCount = Math.max(1, ...data.map((d) => d.session_count));
 
   if (data.length === 0) {
     return (
@@ -37,7 +37,7 @@ export function MuscleGroupBarChart({ data }: MuscleGroupBarChartProps) {
   return (
     <View style={{ gap: Spacing.three }}>
       {data.map((row) => {
-        const widthPercent = Math.max((row.total_volume / maxVolume) * 100, 3);
+        const widthPercent = Math.max((row.session_count / maxCount) * 100, 3);
         return (
           <View key={row.muscle_group_name} style={styles.row}>
             <ThemedText type="small" themeColor="textSecondary" style={styles.label} numberOfLines={1}>
@@ -49,7 +49,7 @@ export function MuscleGroupBarChart({ data }: MuscleGroupBarChartProps) {
               />
             </View>
             <ThemedText type="smallBold" style={styles.value}>
-              {row.total_volume.toLocaleString('tr-TR')}
+              {row.session_count} antrenman
             </ThemedText>
           </View>
         );
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 4,
   },
   value: {
-    width: 56,
+    width: 84,
     textAlign: 'right',
   },
 });
