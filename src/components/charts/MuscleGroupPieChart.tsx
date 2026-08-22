@@ -1,8 +1,8 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { ThemedText } from '@/components/themed-text';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { muscleGroupLabel, MUSCLE_GROUP_ORDER } from '@/constants/muscleGroups';
 
 interface MuscleGroupVolumeRow {
@@ -14,10 +14,12 @@ interface MuscleGroupPieChartProps {
   data: MuscleGroupVolumeRow[];
 }
 
-const SIZE = 200;
-const RADIUS = 92;
+const SIZE = 260;
+const RADIUS = 122;
+const INNER_RADIUS = 66;
 const CENTER = SIZE / 2;
 const MAX_SLOTS = 8;
+const CARD_BACKGROUND = Colors.dark.backgroundElement;
 
 // Dataviz skill: kategorik renkler sabit sırayla, hiç döngüye girmeden atanır (dark mod).
 const CATEGORICAL_DARK = [
@@ -97,21 +99,28 @@ export function MuscleGroupPieChart({ data }: MuscleGroupPieChartProps) {
 
   return (
     <View style={styles.container}>
-      <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-        {arcs.length === 1 ? (
-          <Circle cx={CENTER} cy={CENTER} r={RADIUS} fill={arcs[0].color} />
-        ) : (
-          arcs.map((arc) => (
-            <Path
-              key={arc.name}
-              d={describeSlice(CENTER, CENTER, RADIUS, arc.startAngle, arc.endAngle)}
-              fill={arc.color}
-              stroke="#1a1a19"
-              strokeWidth={2}
-            />
-          ))
-        )}
-      </Svg>
+      <View style={{ width: SIZE, height: SIZE }}>
+        <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+          {arcs.length === 1 ? (
+            <Circle cx={CENTER} cy={CENTER} r={RADIUS} fill={arcs[0].color} />
+          ) : (
+            arcs.map((arc) => (
+              <Path
+                key={arc.name}
+                d={describeSlice(CENTER, CENTER, RADIUS, arc.startAngle, arc.endAngle)}
+                fill={arc.color}
+                stroke={CARD_BACKGROUND}
+                strokeWidth={2}
+              />
+            ))
+          )}
+          <Circle cx={CENTER} cy={CENTER} r={INNER_RADIUS} fill={CARD_BACKGROUND} />
+        </Svg>
+        <View style={styles.centerLabel} pointerEvents="none">
+          <Text style={styles.centerCount}>{total}</Text>
+          <Text style={styles.centerCaption}>antrenman</Text>
+        </View>
+      </View>
 
       <View style={styles.legend}>
         {arcs.map((arc) => (
@@ -132,6 +141,24 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     gap: Spacing.four,
+  },
+  centerLabel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  centerCount: {
+    color: '#ffffff',
+    fontSize: 32,
+    fontWeight: '800',
+  },
+  centerCaption: {
+    color: '#A8A8A8',
+    fontSize: 12,
   },
   legend: {
     width: '100%',
