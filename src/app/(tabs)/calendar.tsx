@@ -12,11 +12,11 @@ import {
   subMonths,
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AttendanceChecklist } from '@/components/AttendanceChecklist';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
@@ -32,6 +32,12 @@ export default function CalendarScreen() {
   const theme = useTheme();
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+
+  function selectDate(dateKey: string) {
+    setSelectedDate(dateKey);
+    setExpandedSessionId(null);
+  }
 
   const gridStart = startOfWeek(startOfMonth(visibleMonth), { weekStartsOn: 1 });
   const gridEnd = endOfWeek(endOfMonth(visibleMonth), { weekStartsOn: 1 });
@@ -98,7 +104,7 @@ export default function CalendarScreen() {
               const today = isToday(day);
               const labels = labelsByDate.get(dateKey) ?? [];
               return (
-                <Pressable key={dateKey} onPress={() => setSelectedDate(dateKey)} style={styles.dayCellWrap}>
+                <Pressable key={dateKey} onPress={() => selectDate(dateKey)} style={styles.dayCellWrap}>
                   <View
                     style={{
                       ...styles.dayCell,
@@ -135,26 +141,28 @@ export default function CalendarScreen() {
               <View style={{ gap: Spacing.two }}>
                 {daySessions.map((session) => {
                   const card = session.card_key ? getCardByKey(session.card_key) : undefined;
+                  const expanded = expandedSessionId === session.id;
                   return (
-                    <Pressable
-                      key={session.id}
-                      onPress={() => {
-                        if (!session.card_key) return;
-                        router.push(
-                          `/sessions/type/${session.session_type}/card/${session.card_key}?date=${session.session_date}`
-                        );
-                      }}
-                      style={{ ...styles.sessionRow, backgroundColor: theme.backgroundElement }}>
-                      <View>
-                        <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
-                        <ThemedText type="small" themeColor="textSecondary">
-                          {card?.dayCode ?? session.card_key}
+                    <View key={session.id}>
+                      <Pressable
+                        onPress={() => setExpandedSessionId(expanded ? null : session.id)}
+                        style={{ ...styles.sessionRow, backgroundColor: theme.backgroundElement }}>
+                        <View>
+                          <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
+                          <ThemedText type="small" themeColor="textSecondary">
+                            {card?.dayCode ?? session.card_key}
+                          </ThemedText>
+                        </View>
+                        <ThemedText type="smallBold" themeColor="accent">
+                          {session.attendedCount}/{totalPlayers} katıldı
                         </ThemedText>
-                      </View>
-                      <ThemedText type="smallBold" themeColor="accent">
-                        {session.attendedCount}/{totalPlayers} katıldı
-                      </ThemedText>
-                    </Pressable>
+                      </Pressable>
+                      {expanded ? (
+                        <View style={styles.checklistWrap}>
+                          <AttendanceChecklist sessionId={session.id} />
+                        </View>
+                      ) : null}
+                    </View>
                   );
                 })}
               </View>
@@ -203,4 +211,5 @@ const styles = StyleSheet.create({
     padding: Spacing.three,
     borderRadius: Spacing.three,
   },
+  checklistWrap: { marginTop: Spacing.two },
 });

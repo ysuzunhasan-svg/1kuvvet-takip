@@ -1,23 +1,15 @@
 import { format, subDays } from 'date-fns';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  type LayoutChangeEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { Image, type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AttendanceChecklist } from '@/components/AttendanceChecklist';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
 import { Spacing } from '@/constants/theme';
-import { useAttendance, useCardSession, useSaveAttendance } from '@/features/attendance/hooks';
+import { useAttendance, useCardSession } from '@/features/attendance/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
@@ -37,49 +29,15 @@ export default function CardAttendanceScreen() {
   const [date, setDate] = useState(dateParam || format(new Date(), 'yyyy-MM-dd'));
   const [showAttendance, setShowAttendance] = useState(false);
   const [imageWidth, setImageWidth] = useState(0);
-  const [localAttendance, setLocalAttendance] = useState<Map<string, boolean> | null>(null);
-  const [justSaved, setJustSaved] = useState(false);
 
   function handleImageContainerLayout(event: LayoutChangeEvent) {
     setImageWidth(event.nativeEvent.layout.width);
   }
 
-  const { data: session, isLoading: sessionLoading } = useCardSession(sessionType, cardKey, date);
+  const { data: session } = useCardSession(sessionType, cardKey, date);
   const { data: players } = usePlayers();
   const { data: attendance } = useAttendance(session?.id);
-  const saveAttendance = useSaveAttendance(session?.id ?? '');
-
-  // Sunucudan gelen katılım verisi yüklendiğinde (veya kart/tarih değiştiğinde) yerel
-  // seçim durumunu sıfırla — kaydedilmemiş işaretlemeler tarih/kart değişince kaybolur.
-  useEffect(() => {
-    setLocalAttendance(null);
-  }, [session?.id]);
-
-  useEffect(() => {
-    if (attendance && localAttendance === null) {
-      const map = new Map<string, boolean>();
-      attendance.forEach((row) => map.set(row.player_id, row.attended));
-      setLocalAttendance(map);
-    }
-  }, [attendance, localAttendance]);
-
-  function toggleLocal(playerId: string) {
-    setJustSaved(false);
-    setLocalAttendance((prev) => {
-      const next = new Map(prev ?? []);
-      next.set(playerId, !(prev?.get(playerId) ?? false));
-      return next;
-    });
-  }
-
-  async function handleSave() {
-    if (!session || !players) return;
-    const rows = players.map((p) => ({ playerId: p.id, attended: localAttendance?.get(p.id) ?? false }));
-    await saveAttendance.mutateAsync(rows);
-    setJustSaved(true);
-  }
-
-  const attendedCount = players?.filter((p) => localAttendance?.get(p.id)).length ?? 0;
+  const attendedCount = attendance?.filter((a) => a.attended).length ?? 0;
 
   if (!card) {
     return (
@@ -136,55 +94,7 @@ export default function CardAttendanceScreen() {
             </ThemedText>
           </Pressable>
 
-          {showAttendance ? (
-            sessionLoading || localAttendance === null ? (
-              <ActivityIndicator style={{ marginTop: Spacing.three }} />
-            ) : (
-              <View style={styles.attendanceList}>
-                {(players ?? []).map((player) => {
-                  const attended = localAttendance.get(player.id) ?? false;
-                  return (
-                    <Pressable
-                      key={player.id}
-                      onPress={() => toggleLocal(player.id)}
-                      style={{ ...styles.playerRow, backgroundColor: theme.backgroundElement }}>
-                      <ThemedText>{player.full_name}</ThemedText>
-                      <View
-                        style={{
-                          ...styles.checkbox,
-                          backgroundColor: attended ? theme.accent : 'transparent',
-                          borderColor: attended ? theme.accent : theme.textSecondary,
-                        }}>
-                        {attended ? (
-                          <ThemedText themeColor="onAccent" type="smallBold">
-                            ✓
-                          </ThemedText>
-                        ) : null}
-                      </View>
-                    </Pressable>
-                  );
-                })}
-                {players && players.length === 0 ? (
-                  <ThemedText themeColor="textSecondary" style={{ textAlign: 'center', marginTop: Spacing.three }}>
-                    Henüz oyuncu eklenmemiş.
-                  </ThemedText>
-                ) : (
-                  <Pressable
-                    onPress={handleSave}
-                    disabled={saveAttendance.isPending}
-                    style={{
-                      ...styles.saveButton,
-                      backgroundColor: theme.accent,
-                      opacity: saveAttendance.isPending ? 0.6 : 1,
-                    }}>
-                    <ThemedText themeColor="onAccent" type="smallBold">
-                      {saveAttendance.isPending ? 'Kaydediliyor...' : justSaved ? 'Kaydedildi ✓' : 'Kaydet'}
-                    </ThemedText>
-                  </Pressable>
-                )}
-              </View>
-            )
-          ) : null}
+          {showAttendance && session ? <AttendanceChecklist sessionId={session.id} /> : null}
         </ScrollView>
       </SafeAreaView>
     </ThemedView>
@@ -204,28 +114,6 @@ const styles = StyleSheet.create({
   },
   quickDateRow: { flexDirection: 'row', gap: Spacing.three },
   attendanceButton: {
-    paddingVertical: Spacing.three,
-    borderRadius: Spacing.two,
-    alignItems: 'center',
-  },
-  attendanceList: { gap: Spacing.two },
-  playerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.three,
-    borderRadius: Spacing.three,
-  },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 6,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButton: {
-    marginTop: Spacing.two,
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,
     alignItems: 'center',
