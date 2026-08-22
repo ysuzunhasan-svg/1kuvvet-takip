@@ -70,12 +70,13 @@ export async function listPlayerAttendedSessions(playerId: string) {
 export interface SessionDateMarker {
   session_date: string;
   session_type: SessionType;
+  card_key: string | null;
 }
 
 export async function listSessionDatesInRange(startDate: string, endDate: string) {
   const { data, error } = await supabase
     .from('training_sessions')
-    .select('session_date, session_type')
+    .select('session_date, session_type, card_key')
     .gte('session_date', startDate)
     .lte('session_date', endDate);
   if (error) throw error;
