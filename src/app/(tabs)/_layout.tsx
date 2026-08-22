@@ -16,6 +16,7 @@ export default function TabsLayout() {
         tabBarIcon: () => null,
         tabBarLabelStyle: { fontSize: 13, fontWeight: '700' },
       }}>
+      <Tabs.Screen name="calendar" options={{ title: 'Takvim', headerShown: false }} />
       <Tabs.Screen name="sessions" options={{ title: 'Antrenmanlar', headerShown: false }} />
       <Tabs.Screen name="players" options={{ title: 'Oyuncular', headerShown: false }} />
       <Tabs.Screen name="reports" options={{ title: 'Raporlar' }} />

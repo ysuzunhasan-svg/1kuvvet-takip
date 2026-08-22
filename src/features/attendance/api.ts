@@ -66,3 +66,42 @@ export async function listPlayerAttendedSessions(playerId: string) {
     .map((row) => row.training_sessions)
     .filter((s): s is AttendedSession => s !== null);
 }
+
+export interface SessionDateMarker {
+  session_date: string;
+  session_type: SessionType;
+}
+
+export async function listSessionDatesInRange(startDate: string, endDate: string) {
+  const { data, error } = await supabase
+    .from('training_sessions')
+    .select('session_date, session_type')
+    .gte('session_date', startDate)
+    .lte('session_date', endDate);
+  if (error) throw error;
+  return (data ?? []) as SessionDateMarker[];
+}
+
+export interface SessionWithAttendanceCount extends TrainingSession {
+  attendedCount: number;
+}
+
+export async function listSessionsForDate(date: string) {
+  const { data: sessions, error } = await supabase.from('training_sessions').select('*').eq('session_date', date);
+  if (error) throw error;
+  const sessionRows = (sessions ?? []) as TrainingSession[];
+  if (sessionRows.length === 0) return [];
+
+  const sessionIds = sessionRows.map((s) => s.id);
+  const { data: attendanceRows, error: attendanceError } = await supabase
+    .from('session_attendance')
+    .select('session_id')
+    .in('session_id', sessionIds)
+    .eq('attended', true);
+  if (attendanceError) throw attendanceError;
+
+  return sessionRows.map((s) => ({
+    ...s,
+    attendedCount: (attendanceRows ?? []).filter((a) => a.session_id === s.id).length,
+  })) as SessionWithAttendanceCount[];
+}

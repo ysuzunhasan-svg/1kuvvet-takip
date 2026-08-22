@@ -4,6 +4,8 @@ import {
   getOrCreateCardSession,
   listAttendance,
   listPlayerAttendedSessions,
+  listSessionDatesInRange,
+  listSessionsForDate,
   setAttendanceBulk,
 } from './api';
 import type { SessionType } from '@/types/database';
@@ -30,6 +32,8 @@ export function useSaveAttendance(sessionId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['attendance', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['player-attended-sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
+      queryClient.invalidateQueries({ queryKey: ['session-dates'] });
     },
   });
 }
@@ -39,5 +43,20 @@ export function usePlayerAttendedSessions(playerId: string | undefined) {
     queryKey: ['player-attended-sessions', playerId],
     queryFn: () => listPlayerAttendedSessions(playerId as string),
     enabled: !!playerId,
+  });
+}
+
+export function useSessionDatesInRange(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: ['session-dates', startDate, endDate],
+    queryFn: () => listSessionDatesInRange(startDate, endDate),
+  });
+}
+
+export function useSessionsForDate(date: string | null) {
+  return useQuery({
+    queryKey: ['sessions-for-date', date],
+    queryFn: () => listSessionsForDate(date as string),
+    enabled: !!date,
   });
 }

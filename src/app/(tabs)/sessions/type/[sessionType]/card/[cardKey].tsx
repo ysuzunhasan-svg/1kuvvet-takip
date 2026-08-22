@@ -26,11 +26,15 @@ import type { SessionType } from '@/types/database';
 const CARD_ASPECT_RATIO = 1653 / 2339;
 
 export default function CardAttendanceScreen() {
-  const { sessionType, cardKey } = useLocalSearchParams<{ sessionType: SessionType; cardKey: string }>();
+  const { sessionType, cardKey, date: dateParam } = useLocalSearchParams<{
+    sessionType: SessionType;
+    cardKey: string;
+    date?: string;
+  }>();
   const card = getCardByKey(cardKey);
   const theme = useTheme();
 
-  const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [date, setDate] = useState(dateParam || format(new Date(), 'yyyy-MM-dd'));
   const [showAttendance, setShowAttendance] = useState(false);
   const [imageWidth, setImageWidth] = useState(0);
   const [localAttendance, setLocalAttendance] = useState<Map<string, boolean> | null>(null);
