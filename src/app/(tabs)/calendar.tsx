@@ -27,10 +27,10 @@ import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 
 const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
-const CALENDAR_MAX_WIDTH = 420;
+const CALENDAR_MAX_WIDTH = 500;
 const DAY_COLUMN_MAX_WIDTH = 480;
 const DESKTOP_BREAKPOINT = 760;
-const CELL_MARGIN = 5;
+const CELL_MARGIN = 3;
 
 export default function CalendarScreen() {
   const theme = useTheme();
@@ -241,11 +241,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
     gap: 1,
   },
-  dayNumber: { fontSize: 9, lineHeight: 10, fontWeight: '600', textAlign: 'center' },
+  dayNumber: { fontSize: 12, lineHeight: 14, fontWeight: '600', textAlign: 'center' },
   dimmed: { opacity: 0.35 },
   labelRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  labelDot: { width: 4, height: 4, borderRadius: 2, flexShrink: 0 },
-  cardLabel: { fontSize: 5.5, lineHeight: 6.5, fontWeight: '700', flexShrink: 1 },
+  labelDot: { width: 5, height: 5, borderRadius: 3, flexShrink: 0 },
+  cardLabel: { fontSize: 7, lineHeight: 8, fontWeight: '700', flexShrink: 1 },
   daySection: { marginTop: Spacing.four },
   sessionRow: {
     flexDirection: 'row',
