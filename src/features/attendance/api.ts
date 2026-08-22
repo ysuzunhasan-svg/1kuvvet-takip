@@ -48,6 +48,62 @@ export async function setAttendanceBulk(sessionId: string, rows: { playerId: str
     .from('session_attendance')
     .upsert(payload, { onConflict: 'session_id,player_id' });
   if (error) throw error;
+
+  await syncEntriesWithCardProgram(sessionId, rows);
+}
+
+// Katılım kaydedildiğinde, kartın kendi hareket programını (card_exercises)
+// katılan oyuncuların session_entries'ine otomatik yansıtır; katılmayanların
+// bu session'a ait otomatik kayıtlarını temizler. Böylece kümülatif kas grubu
+// raporu, ekstra bir hareket girişi yapılmadan kartın programından hesaplanır.
+async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: string; attended: boolean }[]) {
+  const attendedPlayerIds = rows.filter((r) => r.attended).map((r) => r.playerId);
+  const notAttendedPlayerIds = rows.filter((r) => !r.attended).map((r) => r.playerId);
+
+  if (notAttendedPlayerIds.length > 0) {
+    const { error } = await supabase
+      .from('session_entries')
+      .delete()
+      .eq('session_id', sessionId)
+      .in('player_id', notAttendedPlayerIds);
+    if (error) throw error;
+  }
+
+  if (attendedPlayerIds.length === 0) return;
+
+  const { data: session, error: sessionError } = await supabase
+    .from('training_sessions')
+    .select('card_key')
+    .eq('id', sessionId)
+    .single();
+  if (sessionError) throw sessionError;
+  if (!session.card_key) return;
+
+  const { data: cardExercises, error: cardError } = await supabase
+    .from('card_exercises')
+    .select('exercise_id, sets, reps_per_set')
+    .eq('card_key', session.card_key);
+  if (cardError) throw cardError;
+  if (!cardExercises || cardExercises.length === 0) return;
+
+  const { error: deleteError } = await supabase
+    .from('session_entries')
+    .delete()
+    .eq('session_id', sessionId)
+    .in('player_id', attendedPlayerIds);
+  if (deleteError) throw deleteError;
+
+  const entries = attendedPlayerIds.flatMap((playerId) =>
+    cardExercises.map((ex) => ({
+      session_id: sessionId,
+      player_id: playerId,
+      exercise_id: ex.exercise_id,
+      sets: ex.sets,
+      reps_per_set: ex.reps_per_set,
+    }))
+  );
+  const { error: insertError } = await supabase.from('session_entries').insert(entries);
+  if (insertError) throw insertError;
 }
 
 export interface AttendedSession {

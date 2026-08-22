@@ -34,6 +34,7 @@ export function useSaveAttendance(sessionId: string) {
       queryClient.invalidateQueries({ queryKey: ['player-attended-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
       queryClient.invalidateQueries({ queryKey: ['session-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
     },
   });
 }
