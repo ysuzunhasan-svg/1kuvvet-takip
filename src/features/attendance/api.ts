@@ -161,6 +161,25 @@ export async function updateCardExerciseDefaultWeight(cardExerciseId: string, we
   if (error) throw error;
 }
 
+// Kartın programındaki bir satırı başka bir hareketle değiştirir (set/tekrar/
+// ağırlık aynı kalır, sadece hangi hareket olduğu değişir).
+export async function updateCardExerciseExercise(cardExerciseId: string, exerciseId: string) {
+  const { error } = await supabase.from('card_exercises').update({ exercise_id: exerciseId }).eq('id', cardExerciseId);
+  if (error) throw error;
+}
+
+export async function removeCardExercise(cardExerciseId: string) {
+  const { error } = await supabase.from('card_exercises').delete().eq('id', cardExerciseId);
+  if (error) throw error;
+}
+
+export async function addCardExercise(cardKey: string, exerciseId: string, sortOrder: number) {
+  const { error } = await supabase
+    .from('card_exercises')
+    .insert({ card_key: cardKey, exercise_id: exerciseId, sets: 3, reps_per_set: 10, sort_order: sortOrder });
+  if (error) throw error;
+}
+
 export interface ExerciseOption {
   id: string;
   name: string;

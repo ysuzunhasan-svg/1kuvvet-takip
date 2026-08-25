@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  addCardExercise,
   addPlayerSessionEntry,
   createExercise,
   deleteSession,
@@ -14,9 +15,11 @@ import {
   listPlayerSessionEntries,
   listSessionDatesInRange,
   listSessionsForDate,
+  removeCardExercise,
   removeSessionEntry,
   setAttendanceBulk,
   updateCardExerciseDefaultWeight,
+  updateCardExerciseExercise,
   updateEntryWeight,
 } from './api';
 import type { SessionType } from '@/types/database';
@@ -99,6 +102,40 @@ export function useUpdateCardExerciseDefaultWeight(cardKey: string | undefined) 
   return useMutation({
     mutationFn: ({ cardExerciseId, weightKg }: { cardExerciseId: string; weightKg: number | null }) =>
       updateCardExerciseDefaultWeight(cardExerciseId, weightKg),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['card-exercises', cardKey] });
+    },
+  });
+}
+
+export function useUpdateCardExerciseExercise(cardKey: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardExerciseId, exerciseId }: { cardExerciseId: string; exerciseId: string }) =>
+      updateCardExerciseExercise(cardExerciseId, exerciseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['card-exercises', cardKey] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+    },
+  });
+}
+
+export function useRemoveCardExercise(cardKey: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (cardExerciseId: string) => removeCardExercise(cardExerciseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['card-exercises', cardKey] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+    },
+  });
+}
+
+export function useAddCardExercise(cardKey: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ exerciseId, sortOrder }: { exerciseId: string; sortOrder: number }) =>
+      addCardExercise(cardKey, exerciseId, sortOrder),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['card-exercises', cardKey] });
     },

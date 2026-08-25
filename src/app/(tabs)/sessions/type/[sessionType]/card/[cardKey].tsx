@@ -11,10 +11,14 @@ import { getCardByKey } from '@/constants/cards';
 import { Spacing } from '@/constants/theme';
 import type { CardExerciseRow } from '@/features/attendance/api';
 import {
+  useAddCardExercise,
   useAttendance,
   useCardExercises,
   useCardSession,
+  useExercisesLibrary,
+  useRemoveCardExercise,
   useUpdateCardExerciseDefaultWeight,
+  useUpdateCardExerciseExercise,
 } from '@/features/attendance/hooks';
 import { useDbCardByKey } from '@/features/cards/hooks';
 import { usePlayers } from '@/features/players/hooks';
@@ -36,12 +40,16 @@ export default function CardAttendanceScreen() {
 
   const [date, setDate] = useState(dateParam || format(new Date(), 'yyyy-MM-dd'));
   const [showAttendance, setShowAttendance] = useState(false);
+  const [showAddExercise, setShowAddExercise] = useState(false);
 
   const { data: session } = useCardSession(sessionType, cardKey, date);
   const { data: players } = usePlayers();
   const { data: attendance } = useAttendance(session?.id);
   const { data: cardExercises, isLoading: exercisesLoading } = useCardExercises(cardKey);
   const updateDefaultWeight = useUpdateCardExerciseDefaultWeight(cardKey);
+  const updateExercise = useUpdateCardExerciseExercise(cardKey);
+  const removeExercise = useRemoveCardExercise(cardKey);
+  const addExercise = useAddCardExercise(cardKey);
   const attendedCount = attendance?.filter((a) => a.attended).length ?? 0;
 
   if (!card) {
@@ -89,14 +97,15 @@ export default function CardAttendanceScreen() {
               {card.title}
             </ThemedText>
             <ThemedText type="small" themeColor="textSecondary" style={{ marginBottom: Spacing.two }}>
-              Takımın bu hareket için yapması gereken ağırlığı girin. Bir oyuncu farklı bir ağırlık/hareket
-              yapacaksa, aşağıda "Katılan Oyuncular" listesinden o oyuncuya özel değiştirebilirsiniz.
+              Hareketin üzerine dokunarak değiştirebilir, × ile çıkarabilirsiniz. Ağırlık takımın bu hareket için
+              yapması gereken varsayılan ağırlıktır. Bir oyuncu farklı bir ağırlık/hareket yapacaksa, aşağıda
+              "Katılan Oyuncular" listesinden o oyuncuya özel değiştirebilirsiniz.
             </ThemedText>
             {exercisesLoading ? (
               <ActivityIndicator style={{ marginTop: Spacing.two }} />
-            ) : cardExercises && cardExercises.length > 0 ? (
+            ) : (
               <View style={{ gap: Spacing.two }}>
-                {cardExercises.map((exercise, index) => (
+                {(cardExercises ?? []).map((exercise, index) => (
                   <DefaultWeightRow
                     key={exercise.id}
                     index={index}
@@ -104,14 +113,23 @@ export default function CardAttendanceScreen() {
                     onChangeWeight={(weight) =>
                       updateDefaultWeight.mutate({ cardExerciseId: exercise.id, weightKg: weight })
                     }
+                    onSwap={(exerciseId) => updateExercise.mutate({ cardExerciseId: exercise.id, exerciseId })}
+                    onRemove={() => removeExercise.mutate(exercise.id)}
                   />
                 ))}
+                {cardExercises && cardExercises.length === 0 ? (
+                  <ThemedText type="small" themeColor="textSecondary">
+                    Bu kart için henüz hareket programı tanımlanmadı.
+                  </ThemedText>
+                ) : null}
+                <AddCardExerciseControl
+                  show={showAddExercise}
+                  setShow={setShowAddExercise}
+                  onAdd={(exerciseId) =>
+                    addExercise.mutate({ exerciseId, sortOrder: cardExercises?.length ?? 0 })
+                  }
+                />
               </View>
-            ) : (
-              <ThemedText type="small" themeColor="textSecondary">
-                Bu kart için henüz hareket programı tanımlanmadı. Katılımı yine de girebilirsiniz; oyuncu bazında
-                hareket ekleyebilirsiniz.
-              </ThemedText>
             )}
           </View>
 
@@ -135,13 +153,18 @@ function DefaultWeightRow({
   index,
   exercise,
   onChangeWeight,
+  onSwap,
+  onRemove,
 }: {
   index: number;
   exercise: CardExerciseRow;
   onChangeWeight: (weight: number | null) => void;
+  onSwap: (exerciseId: string) => void;
+  onRemove: () => void;
 }) {
   const theme = useTheme();
   const [text, setText] = useState(exercise.default_weight_kg != null ? String(exercise.default_weight_kg) : '');
+  const [showSwap, setShowSwap] = useState(false);
 
   function commit() {
     const raw = text.trim().replace(',', '.');
@@ -151,27 +174,123 @@ function DefaultWeightRow({
   }
 
   return (
-    <View style={styles.exerciseRow}>
-      <ThemedText type="small" themeColor="textSecondary" style={styles.exerciseIndex}>
-        {index + 1}.
-      </ThemedText>
-      <View style={{ flex: 1 }}>
-        <ThemedText type="small">{exercise.exercise_name}</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
-          {exercise.sets}x{exercise.reps_per_set}
+    <View>
+      <View style={styles.exerciseRow}>
+        <ThemedText type="small" themeColor="textSecondary" style={styles.exerciseIndex}>
+          {index + 1}.
         </ThemedText>
+        <Pressable style={{ flex: 1 }} onPress={() => setShowSwap((prev) => !prev)} hitSlop={4}>
+          <ThemedText type="small">{exercise.exercise_name}</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            {exercise.sets}x{exercise.reps_per_set}
+          </ThemedText>
+        </Pressable>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          onBlur={commit}
+          onSubmitEditing={commit}
+          placeholder="kg"
+          placeholderTextColor={theme.textSecondary}
+          keyboardType="numeric"
+          style={[styles.weightInput, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
+        />
+        <Pressable onPress={onRemove} hitSlop={8}>
+          <ThemedText type="smallBold" themeColor="textSecondary">
+            ×
+          </ThemedText>
+        </Pressable>
+      </View>
+      {showSwap ? (
+        <View style={styles.swapWrap}>
+          <ExercisePickerList
+            onSelect={(exerciseId) => {
+              onSwap(exerciseId);
+              setShowSwap(false);
+            }}
+            onClose={() => setShowSwap(false)}
+            title={`"${exercise.exercise_name}" yerine`}
+          />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+function ExercisePickerList({
+  onSelect,
+  onClose,
+  title,
+}: {
+  onSelect: (exerciseId: string) => void;
+  onClose: () => void;
+  title: string;
+}) {
+  const theme = useTheme();
+  const { data: library } = useExercisesLibrary();
+  const [search, setSearch] = useState('');
+  const filtered = (library ?? []).filter((ex) => ex.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  return (
+    <View style={styles.pickerWrap}>
+      <View style={styles.pickerHeaderRow}>
+        <ThemedText type="small" themeColor="textSecondary">
+          {title}
+        </ThemedText>
+        <Pressable onPress={onClose} hitSlop={8}>
+          <ThemedText type="small" themeColor="textSecondary">
+            Kapat
+          </ThemedText>
+        </Pressable>
       </View>
       <TextInput
-        value={text}
-        onChangeText={setText}
-        onBlur={commit}
-        onSubmitEditing={commit}
-        placeholder="kg"
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Hareket ara..."
         placeholderTextColor={theme.textSecondary}
-        keyboardType="numeric"
-        style={[styles.weightInput, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
+        style={[styles.searchInput, { color: theme.text, backgroundColor: theme.backgroundElement }]}
       />
+      <ScrollView style={styles.pickerList} nestedScrollEnabled>
+        {filtered.map((exercise) => (
+          <Pressable
+            key={exercise.id}
+            onPress={() => onSelect(exercise.id)}
+            style={{ ...styles.pickerItem, backgroundColor: theme.backgroundElement }}>
+            <ThemedText type="small">{exercise.name}</ThemedText>
+          </Pressable>
+        ))}
+      </ScrollView>
     </View>
+  );
+}
+
+function AddCardExerciseControl({
+  show,
+  setShow,
+  onAdd,
+}: {
+  show: boolean;
+  setShow: (v: boolean) => void;
+  onAdd: (exerciseId: string) => void;
+}) {
+  if (!show) {
+    return (
+      <Pressable onPress={() => setShow(true)} hitSlop={8}>
+        <ThemedText type="small" themeColor="accent">
+          + Hareket ekle
+        </ThemedText>
+      </Pressable>
+    );
+  }
+  return (
+    <ExercisePickerList
+      title="Hareket ekle"
+      onClose={() => setShow(false)}
+      onSelect={(exerciseId) => {
+        onAdd(exerciseId);
+        setShow(false);
+      }}
+    />
   );
 }
 
@@ -204,6 +323,17 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.one,
     textAlign: 'center',
   },
+  swapWrap: { marginTop: Spacing.two, marginLeft: 20 + Spacing.two },
+  pickerWrap: { gap: Spacing.two },
+  pickerHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  searchInput: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+    fontSize: 14,
+  },
+  pickerList: { maxHeight: 240 },
+  pickerItem: { padding: Spacing.two, borderRadius: Spacing.one, marginBottom: 4 },
   attendanceButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,
