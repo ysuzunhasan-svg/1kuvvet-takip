@@ -5,7 +5,9 @@ export interface TrainingCard {
   sessionType: SessionType;
   dayCode: string;
   title: string;
-  image: number;
+  // Görsel henüz gelmediyse undefined olabilir (örn. Kuvvet kartları) — kart
+  // yine de listede görünür, tarih/katılım girişi görsel olmadan da çalışır.
+  image?: number;
 }
 
 export const TRAINING_CARDS: TrainingCard[] = [
@@ -29,6 +31,18 @@ export const TRAINING_CARDS: TrainingCard[] = [
     dayCode: 'MD-3',
     title: 'MD-3 · Pre Training Preparation',
     image: require('@/assets/cards/ptp-md3-v3.png'),
+  },
+  {
+    key: 'strength-ust-vucut',
+    sessionType: 'strength',
+    dayCode: 'Üst Vücut',
+    title: 'Üst Vücut Kuvvet',
+  },
+  {
+    key: 'strength-alt-vucut',
+    sessionType: 'strength',
+    dayCode: 'Alt Vücut',
+    title: 'Alt Vücut Kuvvet',
   },
 ];
 

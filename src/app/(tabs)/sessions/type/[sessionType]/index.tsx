@@ -33,7 +33,15 @@ export default function SessionTypeCardsScreen() {
             {cards.map((card) => (
               <Link key={card.key} href={`/sessions/type/${sessionType}/card/${card.key}${cardHrefSuffix}`} asChild>
                 <Pressable style={{ ...styles.card, backgroundColor: theme.backgroundElement }}>
-                  <Image source={card.image} style={styles.thumb} resizeMode="cover" />
+                  {card.image ? (
+                    <Image source={card.image} style={styles.thumb} resizeMode="cover" />
+                  ) : (
+                    <View style={{ ...styles.thumb, ...styles.thumbPlaceholder, backgroundColor: theme.backgroundSelected }}>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        Görsel yok
+                      </ThemedText>
+                    </View>
+                  )}
                   <View style={styles.cardTextBlock}>
                     <ThemedText type="smallBold">{card.dayCode}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
@@ -67,6 +75,11 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: Spacing.two,
+  },
+  thumbPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
   },
   cardTextBlock: {
     flex: 1,

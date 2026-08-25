@@ -76,7 +76,14 @@ export default function CardAttendanceScreen() {
           </View>
 
           <View onLayout={handleImageContainerLayout}>
-            {imageWidth > 0 ? (
+            {!card.image ? (
+              <View style={{ ...styles.noImageBox, backgroundColor: theme.backgroundElement }}>
+                <ThemedText type="smallBold">{card.title}</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
+                  Bu kart için görsel henüz eklenmedi. Katılımı yine de girebilirsiniz.
+                </ThemedText>
+              </View>
+            ) : imageWidth > 0 ? (
               <Image
                 source={card.image}
                 style={{ width: imageWidth, height: imageWidth * CARD_ASPECT_RATIO, borderRadius: Spacing.two }}
@@ -113,6 +120,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   quickDateRow: { flexDirection: 'row', gap: Spacing.three },
+  noImageBox: {
+    padding: Spacing.five,
+    borderRadius: Spacing.three,
+    alignItems: 'center',
+    gap: Spacing.two,
+  },
   attendanceButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,

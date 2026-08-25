@@ -92,111 +92,9 @@ export default function CalendarScreen() {
 
   const calendarBlock = (
     <View style={isWide ? { width: CALENDAR_MAX_WIDTH } : styles.narrowCentered}>
-      <View style={styles.titleRow}>
-        <View style={styles.titleSide}>
-          <ThemedText type="subtitle" style={styles.titleText}>
-            Takvim
-          </ThemedText>
-        </View>
-        <View style={styles.addRemoveGroup}>
-          <Pressable
-            onPress={() => {
-              setShowTypePicker((prev) => !prev);
-              setShowDeletePicker(false);
-              setConfirmDeleteId(null);
-            }}
-            hitSlop={12}
-            style={{ ...styles.roundButton, backgroundColor: theme.accent }}>
-            <ThemedText themeColor="onAccent" type="subtitle" style={styles.roundButtonLabel}>
-              +
-            </ThemedText>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              setShowDeletePicker((prev) => !prev);
-              setShowTypePicker(false);
-              setConfirmDeleteId(null);
-            }}
-            hitSlop={12}
-            style={{ ...styles.roundButton, backgroundColor: theme.backgroundElement }}>
-            <ThemedText type="subtitle" style={styles.roundButtonLabel}>
-              −
-            </ThemedText>
-          </Pressable>
-        </View>
-        <View style={styles.titleSide} />
-      </View>
-
-      {showTypePicker ? (
-        <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman ekle
-          </ThemedText>
-          <View style={styles.typePickerRow}>
-            {SESSION_TYPES.map((type) => (
-              <Link key={type} href={`/sessions/type/${type}?date=${selectedDate}`} asChild>
-                <Pressable
-                  onPress={() => setShowTypePicker(false)}
-                  style={{ ...styles.typePickerButton, backgroundColor: theme.backgroundSelected }}>
-                  <ThemedText type="smallBold">{SESSION_TYPE_LABEL[type]}</ThemedText>
-                </Pressable>
-              </Link>
-            ))}
-          </View>
-        </View>
-      ) : null}
-
-      {showDeletePicker ? (
-        <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
-          <ThemedText type="small" themeColor="textSecondary">
-            {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman çıkar
-          </ThemedText>
-          {daySessions && daySessions.length > 0 ? (
-            <View style={{ gap: Spacing.two }}>
-              {daySessions.map((session) => {
-                const card = session.card_key ? getCardByKey(session.card_key) : undefined;
-                const confirming = confirmDeleteId === session.id;
-                return (
-                  <View
-                    key={session.id}
-                    style={{ ...styles.deleteRow, backgroundColor: theme.backgroundSelected }}>
-                    <View style={{ flex: 1 }}>
-                      <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
-                      <ThemedText type="small" themeColor="textSecondary">
-                        {card?.dayCode ?? session.card_key} · {session.attendedCount}/{totalPlayers} katıldı
-                      </ThemedText>
-                    </View>
-                    {confirming ? (
-                      <View style={styles.confirmRow}>
-                        <Pressable onPress={() => confirmDeleteSession(session.id)} hitSlop={8}>
-                          <ThemedText type="smallBold" themeColor="accent">
-                            Evet, sil
-                          </ThemedText>
-                        </Pressable>
-                        <Pressable onPress={() => setConfirmDeleteId(null)} hitSlop={8}>
-                          <ThemedText type="small" themeColor="textSecondary">
-                            Vazgeç
-                          </ThemedText>
-                        </Pressable>
-                      </View>
-                    ) : (
-                      <Pressable onPress={() => setConfirmDeleteId(session.id)} hitSlop={8}>
-                        <ThemedText type="smallBold" themeColor="accent">
-                          Sil
-                        </ThemedText>
-                      </Pressable>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
-          ) : (
-            <ThemedText type="small" themeColor="textSecondary">
-              Bu tarihte silinecek antrenman kaydı yok.
-            </ThemedText>
-          )}
-        </View>
-      ) : null}
+      <ThemedText type="subtitle" style={styles.title}>
+        Takvim
+      </ThemedText>
 
       <View style={styles.monthHeader}>
         <Pressable onPress={() => setVisibleMonth((m) => subMonths(m, 1))} hitSlop={12}>
@@ -314,6 +212,102 @@ export default function CalendarScreen() {
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea} edges={['bottom']}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
+          <View style={styles.addRemoveGroup}>
+            <Pressable
+              onPress={() => {
+                setShowTypePicker((prev) => !prev);
+                setShowDeletePicker(false);
+                setConfirmDeleteId(null);
+              }}
+              hitSlop={12}
+              style={{ ...styles.roundButton, backgroundColor: theme.accent }}>
+              <ThemedText themeColor="onAccent" type="subtitle" style={styles.roundButtonLabel}>
+                +
+              </ThemedText>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setShowDeletePicker((prev) => !prev);
+                setShowTypePicker(false);
+                setConfirmDeleteId(null);
+              }}
+              hitSlop={12}
+              style={{ ...styles.roundButton, backgroundColor: theme.backgroundElement }}>
+              <ThemedText type="subtitle" style={styles.roundButtonLabel}>
+                −
+              </ThemedText>
+            </Pressable>
+          </View>
+
+          {showTypePicker ? (
+            <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman ekle
+              </ThemedText>
+              <View style={styles.typePickerRow}>
+                {SESSION_TYPES.map((type) => (
+                  <Link key={type} href={`/sessions/type/${type}?date=${selectedDate}`} asChild>
+                    <Pressable
+                      onPress={() => setShowTypePicker(false)}
+                      style={{ ...styles.typePickerButton, backgroundColor: theme.backgroundSelected }}>
+                      <ThemedText type="smallBold">{SESSION_TYPE_LABEL[type]}</ThemedText>
+                    </Pressable>
+                  </Link>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {showDeletePicker ? (
+            <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman çıkar
+              </ThemedText>
+              {daySessions && daySessions.length > 0 ? (
+                <View style={{ gap: Spacing.two }}>
+                  {daySessions.map((session) => {
+                    const card = session.card_key ? getCardByKey(session.card_key) : undefined;
+                    const confirming = confirmDeleteId === session.id;
+                    return (
+                      <View key={session.id} style={{ ...styles.deleteRow, backgroundColor: theme.backgroundSelected }}>
+                        <View style={{ flex: 1 }}>
+                          <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
+                          <ThemedText type="small" themeColor="textSecondary">
+                            {card?.dayCode ?? session.card_key} · {session.attendedCount}/{totalPlayers} katıldı
+                          </ThemedText>
+                        </View>
+                        {confirming ? (
+                          <View style={styles.confirmRow}>
+                            <Pressable onPress={() => confirmDeleteSession(session.id)} hitSlop={8}>
+                              <ThemedText type="smallBold" themeColor="accent">
+                                Evet, sil
+                              </ThemedText>
+                            </Pressable>
+                            <Pressable onPress={() => setConfirmDeleteId(null)} hitSlop={8}>
+                              <ThemedText type="small" themeColor="textSecondary">
+                                Vazgeç
+                              </ThemedText>
+                            </Pressable>
+                          </View>
+                        ) : (
+                          <Pressable onPress={() => setConfirmDeleteId(session.id)} hitSlop={8}>
+                            <ThemedText type="smallBold" themeColor="accent">
+                              Sil
+                            </ThemedText>
+                          </Pressable>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <ThemedText type="small" themeColor="textSecondary">
+                  Bu tarihte silinecek antrenman kaydı yok.
+                </ThemedText>
+              )}
+            </View>
+          ) : null}
+
           {isWide ? (
             <View style={styles.wideRow}>
               {calendarBlock}
@@ -338,14 +332,15 @@ const styles = StyleSheet.create({
   narrowCentered: { width: '100%', maxWidth: CALENDAR_MAX_WIDTH, alignSelf: 'center' },
   wideRow: { flexDirection: 'row', gap: Spacing.five, alignItems: 'flex-start' },
   wideDayColumn: { flex: 1, maxWidth: DAY_COLUMN_MAX_WIDTH },
-  titleRow: {
+  title: { marginBottom: Spacing.three },
+  // Sayfanın tam genişliğine göre ortalanır (kolon genişliğine göre değil) —
+  // + / - butonları hem geniş hem dar ekranda sayfanın ortasında dursun diye.
+  addRemoveGroup: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: Spacing.two,
+    alignSelf: 'center',
     marginBottom: Spacing.three,
   },
-  titleSide: { flex: 1 },
-  titleText: { marginBottom: 0 },
-  addRemoveGroup: { flexDirection: 'row', gap: Spacing.two },
   roundButton: {
     width: 32,
     height: 32,
@@ -355,6 +350,9 @@ const styles = StyleSheet.create({
   },
   roundButtonLabel: { lineHeight: 30, marginBottom: 0 },
   typePickerCard: {
+    width: '100%',
+    maxWidth: CALENDAR_MAX_WIDTH,
+    alignSelf: 'center',
     borderRadius: Spacing.three,
     padding: Spacing.three,
     marginBottom: Spacing.three,
