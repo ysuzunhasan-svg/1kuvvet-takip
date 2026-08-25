@@ -165,6 +165,7 @@ function DefaultWeightRow({
   const theme = useTheme();
   const [text, setText] = useState(exercise.default_weight_kg != null ? String(exercise.default_weight_kg) : '');
   const [showSwap, setShowSwap] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   function commit() {
     const raw = text.trim().replace(',', '.');
@@ -185,21 +186,38 @@ function DefaultWeightRow({
             {exercise.sets}x{exercise.reps_per_set}
           </ThemedText>
         </Pressable>
-        <TextInput
-          value={text}
-          onChangeText={setText}
-          onBlur={commit}
-          onSubmitEditing={commit}
-          placeholder="kg"
-          placeholderTextColor={theme.textSecondary}
-          keyboardType="numeric"
-          style={[styles.weightInput, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
-        />
-        <Pressable onPress={onRemove} hitSlop={8}>
-          <ThemedText type="smallBold" themeColor="textSecondary">
-            ×
-          </ThemedText>
-        </Pressable>
+        {confirmRemove ? (
+          <View style={styles.confirmRow}>
+            <Pressable onPress={onRemove} hitSlop={8}>
+              <ThemedText type="small" themeColor="accent">
+                Evet, çıkar
+              </ThemedText>
+            </Pressable>
+            <Pressable onPress={() => setConfirmRemove(false)} hitSlop={8}>
+              <ThemedText type="small" themeColor="textSecondary">
+                Vazgeç
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              value={text}
+              onChangeText={setText}
+              onBlur={commit}
+              onSubmitEditing={commit}
+              placeholder="kg"
+              placeholderTextColor={theme.textSecondary}
+              keyboardType="numeric"
+              style={[styles.weightInput, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
+            />
+            <Pressable onPress={() => setConfirmRemove(true)} hitSlop={8}>
+              <ThemedText type="smallBold" themeColor="textSecondary">
+                ×
+              </ThemedText>
+            </Pressable>
+          </>
+        )}
       </View>
       {showSwap ? (
         <View style={styles.swapWrap}>
@@ -324,6 +342,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   swapWrap: { marginTop: Spacing.two, marginLeft: 20 + Spacing.two },
+  confirmRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   pickerWrap: { gap: Spacing.two },
   pickerHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   searchInput: {
