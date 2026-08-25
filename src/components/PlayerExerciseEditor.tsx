@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
+import { muscleGroupLabel, MUSCLE_GROUP_ORDER } from '@/constants/muscleGroups';
 import { Spacing } from '@/constants/theme';
 import {
   useAddPlayerSessionEntry,
+  useCreateExercise,
   useExercisesLibrary,
+  useMuscleGroups,
   usePlayerSessionEntries,
   useRemoveSessionEntry,
   useUpdateEntryWeight,
@@ -135,6 +138,12 @@ function AddExerciseControl({
   const theme = useTheme();
   const { data: library } = useExercisesLibrary();
   const addEntry = useAddPlayerSessionEntry(sessionId, playerId);
+  const [mode, setMode] = useState<'list' | 'create'>('list');
+
+  function close() {
+    setShow(false);
+    setMode('list');
+  }
 
   if (!show) {
     return (
@@ -146,13 +155,24 @@ function AddExerciseControl({
     );
   }
 
+  if (mode === 'create') {
+    return (
+      <CreateExerciseForm
+        sessionId={sessionId}
+        playerId={playerId}
+        onBack={() => setMode('list')}
+        onDone={close}
+      />
+    );
+  }
+
   return (
     <View style={styles.pickerWrap}>
       <View style={styles.pickerHeaderRow}>
         <ThemedText type="small" themeColor="textSecondary">
           Hareket seç
         </ThemedText>
-        <Pressable onPress={() => setShow(false)} hitSlop={8}>
+        <Pressable onPress={close} hitSlop={8}>
           <ThemedText type="small" themeColor="textSecondary">
             Kapat
           </ThemedText>
@@ -164,13 +184,107 @@ function AddExerciseControl({
             key={exercise.id}
             onPress={() => {
               addEntry.mutate(exercise.id);
-              setShow(false);
+              close();
             }}
             style={{ ...styles.pickerItem, backgroundColor: theme.backgroundElement }}>
             <ThemedText type="small">{exercise.name}</ThemedText>
           </Pressable>
         ))}
       </ScrollView>
+      <Pressable onPress={() => setMode('create')} hitSlop={8}>
+        <ThemedText type="small" themeColor="accent">
+          + Kütüphanede yok, yeni hareket oluştur
+        </ThemedText>
+      </Pressable>
+    </View>
+  );
+}
+
+function CreateExerciseForm({
+  sessionId,
+  playerId,
+  onBack,
+  onDone,
+}: {
+  sessionId: string;
+  playerId: string;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const theme = useTheme();
+  const { data: muscleGroups } = useMuscleGroups();
+  const createExercise = useCreateExercise();
+  const addEntry = useAddPlayerSessionEntry(sessionId, playerId);
+  const [name, setName] = useState('');
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const orderedGroups = (muscleGroups ?? [])
+    .slice()
+    .sort((a, b) => MUSCLE_GROUP_ORDER.indexOf(a.name) - MUSCLE_GROUP_ORDER.indexOf(b.name));
+
+  function toggleGroup(id: number) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  async function handleCreate() {
+    const trimmed = name.trim();
+    if (!trimmed || saving) return;
+    setSaving(true);
+    try {
+      const exercise = await createExercise.mutateAsync({ name: trimmed, muscleGroupIds: selectedIds });
+      await addEntry.mutateAsync(exercise.id);
+      onDone();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <View style={styles.pickerWrap}>
+      <View style={styles.pickerHeaderRow}>
+        <Pressable onPress={onBack} hitSlop={8}>
+          <ThemedText type="small" themeColor="accent">
+            ‹ Listeye dön
+          </ThemedText>
+        </Pressable>
+        <ThemedText type="small" themeColor="textSecondary">
+          Yeni hareket
+        </ThemedText>
+      </View>
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        placeholder="Hareket adı"
+        placeholderTextColor={theme.textSecondary}
+        style={[styles.nameInput, { color: theme.text, backgroundColor: theme.backgroundElement }]}
+      />
+      <ThemedText type="small" themeColor="textSecondary">
+        Hangi kas gruplarını çalıştırıyor? (rapora yansıması için seçin)
+      </ThemedText>
+      <View style={styles.chipRow}>
+        {orderedGroups.map((mg) => {
+          const selected = selectedIds.includes(mg.id);
+          return (
+            <Pressable
+              key={mg.id}
+              onPress={() => toggleGroup(mg.id)}
+              style={{ ...styles.chip, backgroundColor: selected ? theme.accent : theme.backgroundElement }}>
+              <ThemedText type="small" themeColor={selected ? 'onAccent' : 'text'}>
+                {muscleGroupLabel(mg.name)}
+              </ThemedText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <Pressable
+        onPress={handleCreate}
+        disabled={!name.trim() || saving}
+        style={{ ...styles.createButton, backgroundColor: theme.accent, opacity: !name.trim() || saving ? 0.5 : 1 }}>
+        <ThemedText themeColor="onAccent" type="smallBold">
+          {saving ? 'Ekleniyor...' : 'Oluştur ve ekle'}
+        </ThemedText>
+      </Pressable>
     </View>
   );
 }
@@ -196,4 +310,21 @@ const styles = StyleSheet.create({
   pickerHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pickerList: { maxHeight: 240 },
   pickerItem: { padding: Spacing.two, borderRadius: Spacing.one, marginBottom: 4 },
+  nameInput: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+    fontSize: 14,
+  },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  chip: {
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 6,
+    borderRadius: Spacing.two,
+  },
+  createButton: {
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+    alignItems: 'center',
+  },
 });

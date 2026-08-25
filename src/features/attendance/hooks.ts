@@ -2,11 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   addPlayerSessionEntry,
+  createExercise,
   deleteSession,
   getOrCreateCardSession,
   listAttendance,
   listCardExercises,
   listExercisesLibrary,
+  listMuscleGroups,
   listPlayerAttendedSessions,
   listPlayerRecentWeights,
   listPlayerSessionEntries,
@@ -107,6 +109,24 @@ export function useExercisesLibrary() {
   return useQuery({
     queryKey: ['exercises-library'],
     queryFn: listExercisesLibrary,
+  });
+}
+
+export function useMuscleGroups() {
+  return useQuery({
+    queryKey: ['muscle-groups'],
+    queryFn: listMuscleGroups,
+  });
+}
+
+export function useCreateExercise() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, muscleGroupIds }: { name: string; muscleGroupIds: number[] }) =>
+      createExercise(name, muscleGroupIds),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['exercises-library'] });
+    },
   });
 }
 

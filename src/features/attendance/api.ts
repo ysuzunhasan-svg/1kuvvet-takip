@@ -172,6 +172,40 @@ export async function listExercisesLibrary() {
   return (data ?? []) as ExerciseOption[];
 }
 
+export interface MuscleGroupOption {
+  id: number;
+  name: string;
+}
+
+export async function listMuscleGroups() {
+  const { data, error } = await supabase.from('muscle_groups').select('id, name');
+  if (error) throw error;
+  return (data ?? []) as MuscleGroupOption[];
+}
+
+// Kütüphaneye yeni bir hareket ekler ve seçilen kas gruplarıyla eşler (ilk
+// seçilen birincil kas grubu sayılır). Böylece kütüphane sonradan başka
+// kaynaklardan (kitap, koç bilgisi) beslenebilir ve rapor bunu otomatik yansıtır.
+export async function createExercise(name: string, muscleGroupIds: number[]) {
+  const { data: exercise, error } = await supabase
+    .from('exercises')
+    .insert({ name, category: 'strength' })
+    .select('id, name')
+    .single();
+  if (error) throw error;
+
+  if (muscleGroupIds.length > 0) {
+    const rows = muscleGroupIds.map((muscleGroupId, index) => ({
+      exercise_id: exercise.id,
+      muscle_group_id: muscleGroupId,
+      is_primary: index === 0,
+    }));
+    const { error: mgError } = await supabase.from('exercise_muscle_groups').insert(rows);
+    if (mgError) throw mgError;
+  }
+  return exercise as ExerciseOption;
+}
+
 export interface PlayerSessionEntry {
   id: string;
   exercise_id: string;
