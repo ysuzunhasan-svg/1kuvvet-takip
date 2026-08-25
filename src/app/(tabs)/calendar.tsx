@@ -23,7 +23,7 @@ import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
 import { SESSION_TYPE_LABEL, SESSION_TYPES } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
-import { useSessionDatesInRange, useSessionsForDate } from '@/features/attendance/hooks';
+import { useDeleteSession, useSessionDatesInRange, useSessionsForDate } from '@/features/attendance/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -47,11 +47,21 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showDeletePicker, setShowDeletePicker] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const deleteSessionMutation = useDeleteSession();
 
   function selectDate(dateKey: string) {
     setSelectedDate(dateKey);
     setExpandedSessionId(null);
     setShowTypePicker(false);
+    setShowDeletePicker(false);
+    setConfirmDeleteId(null);
+  }
+
+  function confirmDeleteSession(sessionId: string) {
+    deleteSessionMutation.mutate(sessionId);
+    setConfirmDeleteId(null);
   }
 
   const gridStart = startOfWeek(startOfMonth(visibleMonth), { weekStartsOn: 1 });
@@ -83,17 +93,38 @@ export default function CalendarScreen() {
   const calendarBlock = (
     <View style={isWide ? { width: CALENDAR_MAX_WIDTH } : styles.narrowCentered}>
       <View style={styles.titleRow}>
-        <ThemedText type="subtitle" style={styles.titleText}>
-          Takvim
-        </ThemedText>
-        <Pressable
-          onPress={() => setShowTypePicker((prev) => !prev)}
-          hitSlop={12}
-          style={{ ...styles.addButton, backgroundColor: theme.accent }}>
-          <ThemedText themeColor="onAccent" type="subtitle" style={styles.addButtonLabel}>
-            +
+        <View style={styles.titleSide}>
+          <ThemedText type="subtitle" style={styles.titleText}>
+            Takvim
           </ThemedText>
-        </Pressable>
+        </View>
+        <View style={styles.addRemoveGroup}>
+          <Pressable
+            onPress={() => {
+              setShowTypePicker((prev) => !prev);
+              setShowDeletePicker(false);
+              setConfirmDeleteId(null);
+            }}
+            hitSlop={12}
+            style={{ ...styles.roundButton, backgroundColor: theme.accent }}>
+            <ThemedText themeColor="onAccent" type="subtitle" style={styles.roundButtonLabel}>
+              +
+            </ThemedText>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              setShowDeletePicker((prev) => !prev);
+              setShowTypePicker(false);
+              setConfirmDeleteId(null);
+            }}
+            hitSlop={12}
+            style={{ ...styles.roundButton, backgroundColor: theme.backgroundElement }}>
+            <ThemedText type="subtitle" style={styles.roundButtonLabel}>
+              −
+            </ThemedText>
+          </Pressable>
+        </View>
+        <View style={styles.titleSide} />
       </View>
 
       {showTypePicker ? (
@@ -112,6 +143,58 @@ export default function CalendarScreen() {
               </Link>
             ))}
           </View>
+        </View>
+      ) : null}
+
+      {showDeletePicker ? (
+        <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
+          <ThemedText type="small" themeColor="textSecondary">
+            {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman çıkar
+          </ThemedText>
+          {daySessions && daySessions.length > 0 ? (
+            <View style={{ gap: Spacing.two }}>
+              {daySessions.map((session) => {
+                const card = session.card_key ? getCardByKey(session.card_key) : undefined;
+                const confirming = confirmDeleteId === session.id;
+                return (
+                  <View
+                    key={session.id}
+                    style={{ ...styles.deleteRow, backgroundColor: theme.backgroundSelected }}>
+                    <View style={{ flex: 1 }}>
+                      <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
+                      <ThemedText type="small" themeColor="textSecondary">
+                        {card?.dayCode ?? session.card_key} · {session.attendedCount}/{totalPlayers} katıldı
+                      </ThemedText>
+                    </View>
+                    {confirming ? (
+                      <View style={styles.confirmRow}>
+                        <Pressable onPress={() => confirmDeleteSession(session.id)} hitSlop={8}>
+                          <ThemedText type="smallBold" themeColor="accent">
+                            Evet, sil
+                          </ThemedText>
+                        </Pressable>
+                        <Pressable onPress={() => setConfirmDeleteId(null)} hitSlop={8}>
+                          <ThemedText type="small" themeColor="textSecondary">
+                            Vazgeç
+                          </ThemedText>
+                        </Pressable>
+                      </View>
+                    ) : (
+                      <Pressable onPress={() => setConfirmDeleteId(session.id)} hitSlop={8}>
+                        <ThemedText type="smallBold" themeColor="accent">
+                          Sil
+                        </ThemedText>
+                      </Pressable>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <ThemedText type="small" themeColor="textSecondary">
+              Bu tarihte silinecek antrenman kaydı yok.
+            </ThemedText>
+          )}
         </View>
       ) : null}
 
@@ -258,18 +341,19 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     marginBottom: Spacing.three,
   },
+  titleSide: { flex: 1 },
   titleText: { marginBottom: 0 },
-  addButton: {
+  addRemoveGroup: { flexDirection: 'row', gap: Spacing.two },
+  roundButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addButtonLabel: { lineHeight: 30, marginBottom: 0 },
+  roundButtonLabel: { lineHeight: 30, marginBottom: 0 },
   typePickerCard: {
     borderRadius: Spacing.three,
     padding: Spacing.three,
@@ -282,6 +366,15 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     borderRadius: Spacing.two,
   },
+  deleteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.three,
+    borderRadius: Spacing.two,
+    gap: Spacing.two,
+  },
+  confirmRow: { flexDirection: 'row', gap: Spacing.three, alignItems: 'center' },
   monthHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

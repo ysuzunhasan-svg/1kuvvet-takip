@@ -106,6 +106,11 @@ async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: s
   if (insertError) throw insertError;
 }
 
+export async function deleteSession(sessionId: string) {
+  const { error } = await supabase.from('training_sessions').delete().eq('id', sessionId);
+  if (error) throw error;
+}
+
 export interface AttendedSession {
   session_date: string;
   session_type: SessionType;

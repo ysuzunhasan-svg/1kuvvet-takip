@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  deleteSession,
   getOrCreateCardSession,
   listAttendance,
   listPlayerAttendedSessions,
@@ -34,6 +35,19 @@ export function useSaveAttendance(sessionId: string) {
       queryClient.invalidateQueries({ queryKey: ['player-attended-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
       queryClient.invalidateQueries({ queryKey: ['session-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+    },
+  });
+}
+
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sessionId: string) => deleteSession(sessionId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
+      queryClient.invalidateQueries({ queryKey: ['session-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['player-attended-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
     },
   });
