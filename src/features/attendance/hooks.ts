@@ -13,6 +13,7 @@ import {
   listExercisesLibrary,
   listMuscleGroups,
   listPlayerAttendedSessions,
+  listPlayerEntriesForDate,
   listPlayerRecentWeights,
   listPlayerSessionEntries,
   listSessionDatesInRange,
@@ -195,12 +196,13 @@ export function useAddPlayerSessionEntry(sessionId: string, playerId: string) {
   });
 }
 
-export function useAddFreeformEntry(sessionId: string | undefined, playerId: string | undefined) {
+export function useAddFreeformEntry(sessionId: string | undefined, playerId: string | undefined, date?: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (exerciseId: string) => addFreeformEntry(sessionId as string, playerId as string, exerciseId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
+      queryClient.invalidateQueries({ queryKey: ['player-entries-for-date', playerId, date] });
       queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
       queryClient.invalidateQueries({ queryKey: ['attendance', sessionId] });
       queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
@@ -228,6 +230,36 @@ export function useUpdateEntryWeight(sessionId: string, playerId: string) {
       updateEntryWeight(entryId, weightKg),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
+    },
+  });
+}
+
+export function usePlayerEntriesForDate(playerId: string | undefined, date: string) {
+  return useQuery({
+    queryKey: ['player-entries-for-date', playerId, date],
+    queryFn: () => listPlayerEntriesForDate(playerId as string, date),
+    enabled: !!playerId,
+  });
+}
+
+export function useUpdateGroupedEntryWeight(playerId: string | undefined, date: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entryId, weightKg }: { entryId: string; weightKg: number | null }) =>
+      updateEntryWeight(entryId, weightKg),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-entries-for-date', playerId, date] });
+    },
+  });
+}
+
+export function useRemoveGroupedEntry(playerId: string | undefined, date: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (entryId: string) => removeSessionEntry(entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-entries-for-date', playerId, date] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
     },
   });
 }

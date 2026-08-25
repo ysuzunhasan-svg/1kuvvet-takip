@@ -306,6 +306,65 @@ export async function updateEntryWeight(entryId: string, weightKg: number | null
   if (error) throw error;
 }
 
+export interface PlayerEntryGroup {
+  sessionId: string;
+  sessionType: SessionType;
+  cardKey: string | null;
+  entries: PlayerSessionEntry[];
+}
+
+// Oyuncular sekmesindeki tek ekran için: bir oyuncunun o tarihteki TÜM
+// hareketleri — Takvim/Antrenmanlar üzerinden bir karta katılarak oluşmuş
+// olsun ya da bu sekmeden serbest eklenmiş olsun — session'a göre gruplanmış
+// halde. Böylece koç, o gün oyuncunun yaptığı her şeyi tek yerden görüp
+// düzenleyebiliyor.
+export async function listPlayerEntriesForDate(playerId: string, date: string) {
+  const { data, error } = await supabase
+    .from('session_entries')
+    .select(
+      'id, exercise_id, sets, reps_per_set, load_kg, exercises(name), training_sessions!inner(id, session_type, card_key, session_date)'
+    )
+    .eq('player_id', playerId)
+    .eq('training_sessions.session_date', date)
+    .order('created_at');
+  if (error) throw error;
+
+  const rows = (data ?? []) as unknown as {
+    id: string;
+    exercise_id: string;
+    sets: number;
+    reps_per_set: number;
+    load_kg: number | null;
+    exercises: { name: string } | null;
+    training_sessions: { id: string; session_type: SessionType; card_key: string | null } | null;
+  }[];
+
+  const groups = new Map<string, PlayerEntryGroup>();
+  rows.forEach((row) => {
+    if (!row.training_sessions) return;
+    const sessionId = row.training_sessions.id;
+    let group = groups.get(sessionId);
+    if (!group) {
+      group = {
+        sessionId,
+        sessionType: row.training_sessions.session_type,
+        cardKey: row.training_sessions.card_key,
+        entries: [],
+      };
+      groups.set(sessionId, group);
+    }
+    group.entries.push({
+      id: row.id,
+      exercise_id: row.exercise_id,
+      exercise_name: row.exercises?.name ?? '',
+      sets: row.sets,
+      reps_per_set: row.reps_per_set,
+      load_kg: row.load_kg,
+    });
+  });
+  return Array.from(groups.values());
+}
+
 export interface PlayerRecentWeight {
   exercise_id: string;
   exercise_name: string;

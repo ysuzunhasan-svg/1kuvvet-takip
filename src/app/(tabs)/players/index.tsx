@@ -7,16 +7,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { getCardByKey } from '@/constants/cards';
+import { SESSION_TYPE_LABEL } from '@/constants/sessionTypes';
 import { ClubColors, Spacing } from '@/constants/theme';
-import type { ExerciseOption, PlayerSessionEntry } from '@/features/attendance/api';
+import type { ExerciseOption, PlayerEntryGroup } from '@/features/attendance/api';
 import {
   useAddFreeformEntry,
   useExercisesLibrary,
   useIndividualSession,
-  usePlayerSessionEntries,
-  useRemoveSessionEntry,
-  useUpdateEntryWeight,
+  usePlayerEntriesForDate,
+  useRemoveGroupedEntry,
+  useUpdateGroupedEntryWeight,
 } from '@/features/attendance/hooks';
+import { useAllDbCards } from '@/features/cards/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { Player } from '@/types/database';
@@ -128,13 +131,25 @@ function PlayerEntryPanel({
   setDate: (date: string) => void;
   sessionId: string | undefined;
 }) {
+  const theme = useTheme();
   const today = format(new Date(), 'yyyy-MM-dd');
   const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-  const { data: entries, isLoading } = usePlayerSessionEntries(sessionId, player.id);
-  const addEntry = useAddFreeformEntry(sessionId, player.id);
-  const removeEntry = useRemoveSessionEntry(sessionId ?? '', player.id);
-  const updateWeight = useUpdateEntryWeight(sessionId ?? '', player.id);
+  const { data: groups, isLoading } = usePlayerEntriesForDate(player.id, date);
+  const { data: allDbCards } = useAllDbCards();
+  const dbCardMap = useMemo(() => new Map((allDbCards ?? []).map((c) => [c.key, c])), [allDbCards]);
+  const addEntry = useAddFreeformEntry(sessionId, player.id, date);
+  const removeEntry = useRemoveGroupedEntry(player.id, date);
+  const updateWeight = useUpdateGroupedEntryWeight(player.id, date);
   const [showAddPicker, setShowAddPicker] = useState(false);
+
+  function groupLabel(group: PlayerEntryGroup) {
+    if (!group.cardKey) return 'Bireysel (serbest giriş)';
+    const card = getCardByKey(group.cardKey) ?? dbCardMap.get(group.cardKey);
+    const dayCode = card?.dayCode ?? group.cardKey;
+    return `${SESSION_TYPE_LABEL[group.sessionType]} · ${dayCode}`;
+  }
+
+  const totalEntries = (groups ?? []).reduce((sum, g) => sum + g.entries.length, 0);
 
   return (
     <View style={{ gap: Spacing.three }}>
@@ -149,6 +164,13 @@ function PlayerEntryPanel({
         </View>
         <View style={styles.panelHeaderRight}>
           <View style={styles.quickDateRow}>
+            <TextInput
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-AA-GG"
+              placeholderTextColor={theme.textSecondary}
+              style={[styles.dateInput, { color: theme.text, backgroundColor: theme.background }]}
+            />
             <Pressable onPress={() => setDate(today)} hitSlop={6}>
               <ThemedText type="link" themeColor={date === today ? 'accent' : 'textSecondary'}>
                 Bugün
@@ -171,26 +193,34 @@ function PlayerEntryPanel({
       </View>
 
       <ThemedText type="small" themeColor="textSecondary">
-        {format(new Date(date + 'T00:00:00'), 'd MMMM yyyy', { locale: tr })} tarihi için hareket ve ağırlık girin —
-        kümülatif kas grubu raporuna otomatik yansır.
+        {format(new Date(date + 'T00:00:00'), 'd MMMM yyyy', { locale: tr })} tarihi için Takvim/Antrenmanlar
+        üzerinden girilenler de dahil tüm hareket ve ağırlıklar burada — dilediğinizi buradan da
+        düzenleyebilir/silebilirsiniz.
       </ThemedText>
 
       {isLoading ? (
         <ActivityIndicator style={{ marginTop: Spacing.two }} />
       ) : (
-        <View style={{ gap: Spacing.two }}>
-          {(entries ?? []).map((entry: PlayerSessionEntry) => (
-            <FreeformEntryRow
-              key={entry.id}
-              exerciseName={entry.exercise_name}
-              sets={entry.sets}
-              repsPerSet={entry.reps_per_set}
-              loadKg={entry.load_kg}
-              onChangeWeight={(weight) => updateWeight.mutate({ entryId: entry.id, weightKg: weight })}
-              onRemove={() => removeEntry.mutate(entry.id)}
-            />
+        <View style={{ gap: Spacing.three }}>
+          {(groups ?? []).map((group) => (
+            <View key={group.sessionId} style={{ gap: Spacing.two }}>
+              <ThemedText type="small" themeColor="textSecondary">
+                {groupLabel(group)}
+              </ThemedText>
+              {group.entries.map((entry) => (
+                <FreeformEntryRow
+                  key={entry.id}
+                  exerciseName={entry.exercise_name}
+                  sets={entry.sets}
+                  repsPerSet={entry.reps_per_set}
+                  loadKg={entry.load_kg}
+                  onChangeWeight={(weight) => updateWeight.mutate({ entryId: entry.id, weightKg: weight })}
+                  onRemove={() => removeEntry.mutate(entry.id)}
+                />
+              ))}
+            </View>
           ))}
-          {(entries ?? []).length === 0 ? (
+          {totalEntries === 0 ? (
             <ThemedText type="small" themeColor="textSecondary">
               Bu oyuncu için bu tarihte henüz hareket eklenmedi.
             </ThemedText>
@@ -374,7 +404,14 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   panelHeaderRight: { alignItems: 'flex-end', gap: Spacing.one },
-  quickDateRow: { flexDirection: 'row', gap: Spacing.three },
+  quickDateRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
+  dateInput: {
+    borderRadius: Spacing.one,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 4,
+    fontSize: 13,
+    width: 110,
+  },
   entryRow: {
     flexDirection: 'row',
     alignItems: 'center',
