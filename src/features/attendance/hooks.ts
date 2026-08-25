@@ -14,6 +14,7 @@ import {
   listSessionsForDate,
   removeSessionEntry,
   setAttendanceBulk,
+  updateCardExerciseDefaultWeight,
   updateEntryWeight,
 } from './api';
 import type { SessionType } from '@/types/database';
@@ -88,6 +89,17 @@ export function useCardExercises(cardKey: string | undefined) {
     queryKey: ['card-exercises', cardKey],
     queryFn: () => listCardExercises(cardKey as string),
     enabled: !!cardKey,
+  });
+}
+
+export function useUpdateCardExerciseDefaultWeight(cardKey: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardExerciseId, weightKg }: { cardExerciseId: string; weightKg: number | null }) =>
+      updateCardExerciseDefaultWeight(cardExerciseId, weightKg),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['card-exercises', cardKey] });
+    },
   });
 }
 

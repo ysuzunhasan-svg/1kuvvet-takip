@@ -9,7 +9,13 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
 import { Spacing } from '@/constants/theme';
-import { useAttendance, useCardExercises, useCardSession } from '@/features/attendance/hooks';
+import type { CardExerciseRow } from '@/features/attendance/api';
+import {
+  useAttendance,
+  useCardExercises,
+  useCardSession,
+  useUpdateCardExerciseDefaultWeight,
+} from '@/features/attendance/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
@@ -30,6 +36,7 @@ export default function CardAttendanceScreen() {
   const { data: players } = usePlayers();
   const { data: attendance } = useAttendance(session?.id);
   const { data: cardExercises, isLoading: exercisesLoading } = useCardExercises(cardKey);
+  const updateDefaultWeight = useUpdateCardExerciseDefaultWeight(cardKey);
   const attendedCount = attendance?.filter((a) => a.attended).length ?? 0;
 
   if (!card) {
@@ -69,25 +76,26 @@ export default function CardAttendanceScreen() {
           </View>
 
           <View style={{ ...styles.exerciseCard, backgroundColor: theme.backgroundElement }}>
-            <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
+            <ThemedText type="smallBold" style={{ marginBottom: 2 }}>
               {card.title}
+            </ThemedText>
+            <ThemedText type="small" themeColor="textSecondary" style={{ marginBottom: Spacing.two }}>
+              Takımın bu hareket için yapması gereken ağırlığı girin. Bir oyuncu farklı bir ağırlık/hareket
+              yapacaksa, aşağıda "Katılan Oyuncular" listesinden o oyuncuya özel değiştirebilirsiniz.
             </ThemedText>
             {exercisesLoading ? (
               <ActivityIndicator style={{ marginTop: Spacing.two }} />
             ) : cardExercises && cardExercises.length > 0 ? (
               <View style={{ gap: Spacing.two }}>
                 {cardExercises.map((exercise, index) => (
-                  <View key={exercise.id} style={styles.exerciseRow}>
-                    <ThemedText type="small" themeColor="textSecondary" style={styles.exerciseIndex}>
-                      {index + 1}.
-                    </ThemedText>
-                    <ThemedText type="small" style={{ flex: 1 }}>
-                      {exercise.exercise_name}
-                    </ThemedText>
-                    <ThemedText type="small" themeColor="textSecondary">
-                      {exercise.sets}x{exercise.reps_per_set}
-                    </ThemedText>
-                  </View>
+                  <DefaultWeightRow
+                    key={exercise.id}
+                    index={index}
+                    exercise={exercise}
+                    onChangeWeight={(weight) =>
+                      updateDefaultWeight.mutate({ cardExerciseId: exercise.id, weightKg: weight })
+                    }
+                  />
                 ))}
               </View>
             ) : (
@@ -114,6 +122,50 @@ export default function CardAttendanceScreen() {
   );
 }
 
+function DefaultWeightRow({
+  index,
+  exercise,
+  onChangeWeight,
+}: {
+  index: number;
+  exercise: CardExerciseRow;
+  onChangeWeight: (weight: number | null) => void;
+}) {
+  const theme = useTheme();
+  const [text, setText] = useState(exercise.default_weight_kg != null ? String(exercise.default_weight_kg) : '');
+
+  function commit() {
+    const raw = text.trim().replace(',', '.');
+    const weight = raw === '' ? null : Number(raw);
+    if (weight !== null && Number.isNaN(weight)) return;
+    onChangeWeight(weight);
+  }
+
+  return (
+    <View style={styles.exerciseRow}>
+      <ThemedText type="small" themeColor="textSecondary" style={styles.exerciseIndex}>
+        {index + 1}.
+      </ThemedText>
+      <View style={{ flex: 1 }}>
+        <ThemedText type="small">{exercise.exercise_name}</ThemedText>
+        <ThemedText type="small" themeColor="textSecondary">
+          {exercise.sets}x{exercise.reps_per_set}
+        </ThemedText>
+      </View>
+      <TextInput
+        value={text}
+        onChangeText={setText}
+        onBlur={commit}
+        onSubmitEditing={commit}
+        placeholder="kg"
+        placeholderTextColor={theme.textSecondary}
+        keyboardType="numeric"
+        style={[styles.weightInput, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   safeArea: { flex: 1, paddingHorizontal: Spacing.three, paddingTop: Spacing.three },
@@ -136,6 +188,13 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   exerciseIndex: { width: 20 },
+  weightInput: {
+    width: 56,
+    paddingHorizontal: Spacing.two,
+    paddingVertical: 6,
+    borderRadius: Spacing.one,
+    textAlign: 'center',
+  },
   attendanceButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,

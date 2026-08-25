@@ -50,6 +50,9 @@ export function PlayerExerciseEditor({ sessionId, playerId, attended }: PlayerEx
 
   return (
     <View style={styles.wrap}>
+      <ThemedText type="small" themeColor="textSecondary">
+        Bu oyuncuya özel — takım varsayılanından farklıysa buradan değiştirin.
+      </ThemedText>
       {entries.map((entry) => (
         <EntryRow
           key={entry.id}

@@ -92,7 +92,7 @@ async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: s
 
   const { data: cardExercises, error: cardError } = await supabase
     .from('card_exercises')
-    .select('exercise_id, sets, reps_per_set')
+    .select('exercise_id, sets, reps_per_set, default_weight_kg')
     .eq('card_key', session.card_key);
   if (cardError) throw cardError;
   if (!cardExercises || cardExercises.length === 0) return;
@@ -104,6 +104,7 @@ async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: s
       exercise_id: ex.exercise_id,
       sets: ex.sets,
       reps_per_set: ex.reps_per_set,
+      load_kg: ex.default_weight_kg,
     }))
   );
   const { error: insertError } = await supabase.from('session_entries').insert(entries);
@@ -117,27 +118,47 @@ export interface CardExerciseRow {
   sets: number;
   reps_per_set: number;
   sort_order: number;
+  default_weight_kg: number | null;
 }
 
-// Kartın referans programı — kart ekranında görsel yerine gösterilen salt
-// okunur hareket listesi (oyuncudan bağımsız, kartın kendi tanımı).
+// Kartın referans programı — kart ekranında görsel yerine gösterilen hareket
+// listesi. Buradaki ağırlık, takımın o hareket için varsayılan/hedef
+// ağırlığıdır; bir oyuncu antrenmana ilk katıldığında bu değer session_entries'e
+// kopyalanır (oyuncu bazında sonra değiştirilebilir, kartın varsayılanı sabit kalır).
 export async function listCardExercises(cardKey: string) {
   const { data, error } = await supabase
     .from('card_exercises')
-    .select('id, exercise_id, sets, reps_per_set, sort_order, exercises(name)')
+    .select('id, exercise_id, sets, reps_per_set, sort_order, default_weight_kg, exercises(name)')
     .eq('card_key', cardKey)
     .order('sort_order');
   if (error) throw error;
-  return ((data ?? []) as unknown as { id: string; exercise_id: string; sets: number; reps_per_set: number; sort_order: number; exercises: { name: string } | null }[]).map(
-    (row) => ({
-      id: row.id,
-      exercise_id: row.exercise_id,
-      exercise_name: row.exercises?.name ?? '',
-      sets: row.sets,
-      reps_per_set: row.reps_per_set,
-      sort_order: row.sort_order,
-    })
-  ) as CardExerciseRow[];
+  return (
+    (data ?? []) as unknown as {
+      id: string;
+      exercise_id: string;
+      sets: number;
+      reps_per_set: number;
+      sort_order: number;
+      default_weight_kg: number | null;
+      exercises: { name: string } | null;
+    }[]
+  ).map((row) => ({
+    id: row.id,
+    exercise_id: row.exercise_id,
+    exercise_name: row.exercises?.name ?? '',
+    sets: row.sets,
+    reps_per_set: row.reps_per_set,
+    sort_order: row.sort_order,
+    default_weight_kg: row.default_weight_kg,
+  })) as CardExerciseRow[];
+}
+
+export async function updateCardExerciseDefaultWeight(cardExerciseId: string, weightKg: number | null) {
+  const { error } = await supabase
+    .from('card_exercises')
+    .update({ default_weight_kg: weightKg })
+    .eq('id', cardExerciseId);
+  if (error) throw error;
 }
 
 export interface ExerciseOption {
