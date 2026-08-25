@@ -216,7 +216,7 @@ export default function CalendarScreen() {
                   <View>
                     <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
-                      {card?.dayCode ?? session.card_key}
+                      {card?.dayCode ?? session.card_key ?? 'Serbest giriş (Oyuncular sekmesi)'}
                     </ThemedText>
                   </View>
                   <ThemedText type="smallBold" themeColor="accent">
@@ -341,7 +341,8 @@ export default function CalendarScreen() {
                         <View style={{ flex: 1 }}>
                           <ThemedText type="smallBold">{SESSION_TYPE_LABEL[session.session_type]}</ThemedText>
                           <ThemedText type="small" themeColor="textSecondary">
-                            {card?.dayCode ?? session.card_key} · {session.attendedCount}/{totalPlayers} katıldı
+                            {card?.dayCode ?? session.card_key ?? 'Serbest giriş'} · {session.attendedCount}/
+                            {totalPlayers} katıldı
                           </ThemedText>
                         </View>
                         {confirming ? (

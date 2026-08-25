@@ -21,6 +21,29 @@ export async function getOrCreateCardSession(sessionType: SessionType, cardKey: 
   return created as TrainingSession;
 }
 
+// Oyuncular sekmesinden kart/program seçmeden doğrudan hareket girişi için —
+// card_key'siz (serbest) bir 'individual' session. Aynı gün için tek session'a
+// toplanır, böylece o günkü tüm serbest girişler aynı kayıtta birikir.
+export async function getOrCreateIndividualSession(date: string) {
+  const { data: existing, error: selectError } = await supabase
+    .from('training_sessions')
+    .select('*')
+    .eq('session_type', 'individual')
+    .is('card_key', null)
+    .eq('session_date', date)
+    .maybeSingle();
+  if (selectError) throw selectError;
+  if (existing) return existing as TrainingSession;
+
+  const { data: created, error: insertError } = await supabase
+    .from('training_sessions')
+    .insert({ session_type: 'individual', card_key: null, session_date: date })
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  return created as TrainingSession;
+}
+
 export interface AttendanceRow {
   player_id: string;
   attended: boolean;
@@ -267,6 +290,15 @@ export async function addPlayerSessionEntry(sessionId: string, playerId: string,
 export async function removeSessionEntry(entryId: string) {
   const { error } = await supabase.from('session_entries').delete().eq('id', entryId);
   if (error) throw error;
+}
+
+// Oyuncular sekmesindeki serbest giriş ekranı için: hareketi eklerken
+// oyuncuyu da o session'a "katıldı" olarak işaretler (attendance ayrı bir
+// akıştan gelmediği için burada birlikte yapılır) — aksi halde girilen
+// hareket kayıt olur ama oyuncu hiç katılmamış görünür.
+export async function addFreeformEntry(sessionId: string, playerId: string, exerciseId: string) {
+  await setAttendance(sessionId, playerId, true);
+  await addPlayerSessionEntry(sessionId, playerId, exerciseId);
 }
 
 export async function updateEntryWeight(entryId: string, weightKg: number | null) {

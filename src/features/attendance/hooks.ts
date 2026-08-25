@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
   addCardExercise,
+  addFreeformEntry,
   addPlayerSessionEntry,
   createExercise,
   deleteSession,
   getOrCreateCardSession,
+  getOrCreateIndividualSession,
   listAttendance,
   listCardExercises,
   listExercisesLibrary,
@@ -28,6 +30,13 @@ export function useCardSession(sessionType: SessionType, cardKey: string, date: 
   return useQuery({
     queryKey: ['card-session', sessionType, cardKey, date],
     queryFn: () => getOrCreateCardSession(sessionType, cardKey, date),
+  });
+}
+
+export function useIndividualSession(date: string) {
+  return useQuery({
+    queryKey: ['individual-session', date],
+    queryFn: () => getOrCreateIndividualSession(date),
   });
 }
 
@@ -182,6 +191,21 @@ export function useAddPlayerSessionEntry(sessionId: string, playerId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
       queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+    },
+  });
+}
+
+export function useAddFreeformEntry(sessionId: string | undefined, playerId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (exerciseId: string) => addFreeformEntry(sessionId as string, playerId as string, exerciseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance', sessionId] });
+      queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
+      queryClient.invalidateQueries({ queryKey: ['session-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['player-attended-sessions'] });
     },
   });
 }
