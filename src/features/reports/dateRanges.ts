@@ -1,4 +1,4 @@
-import { format, subDays } from 'date-fns';
+import { endOfWeek, format, startOfWeek, subDays } from 'date-fns';
 
 import type { DateRange } from './api';
 
@@ -17,5 +17,15 @@ export function presetToRange(preset: DateRangePreset): DateRange {
   return {
     start: format(subDays(new Date(), days), 'yyyy-MM-dd'),
     end: format(new Date(), 'yyyy-MM-dd'),
+  };
+}
+
+// Oyuncular sekmesindeki tarih alanıyla tutarlı olsun diye hafta Pazartesi
+// başlıyor (takvimdeki hafta hesabıyla aynı kural).
+export function getWeekRange(anchorDate: string): DateRange {
+  const anchor = new Date(anchorDate + 'T00:00:00');
+  return {
+    start: format(startOfWeek(anchor, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+    end: format(endOfWeek(anchor, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
   };
 }

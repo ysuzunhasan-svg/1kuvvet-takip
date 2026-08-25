@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G, Line } from 'react-native-svg';
+import Svg, { Circle, Ellipse, G, Line } from 'react-native-svg';
 
 import { ClubColors, Spacing } from '@/constants/theme';
 import { muscleGroupLabel } from '@/constants/muscleGroups';
@@ -25,47 +25,114 @@ interface MarkerConfig {
   side: 'left' | 'right';
   xPct: number;
   yPct: number;
+  // Boyama modunda bu kas grubunun kapladığı bölgeyi yaklaşık kaplayan
+  // elips yarıçapları (görsel genişlik/yüksekliğine oran, 0-1 arası).
+  rxPct: number;
+  ryPct: number;
 }
 
 // Yüzdelik konumlar kaynak görsel üzerinde ızgara ile elle kalibre edildi
 // (görselin kendi genişlik/yüksekliğine göre 0-1 arası). Ön görünümden
 // görünmeyen kaslar (sırt, kalça, arka bacak) arka görünüme kondu.
 const FRONT_MARKERS: Record<string, MarkerConfig> = {
-  chest: { side: 'left', xPct: 0.42, yPct: 0.28 },
-  core: { side: 'left', xPct: 0.46, yPct: 0.41 },
-  hip_adductors: { side: 'left', xPct: 0.46, yPct: 0.6 },
-  shoulders: { side: 'right', xPct: 0.63, yPct: 0.21 },
-  biceps: { side: 'right', xPct: 0.71, yPct: 0.36 },
-  hip_flexors: { side: 'right', xPct: 0.54, yPct: 0.51 },
-  quadriceps: { side: 'right', xPct: 0.59, yPct: 0.65 },
+  chest: { side: 'left', xPct: 0.42, yPct: 0.28, rxPct: 0.11, ryPct: 0.055 },
+  core: { side: 'left', xPct: 0.46, yPct: 0.41, rxPct: 0.075, ryPct: 0.08 },
+  hip_adductors: { side: 'left', xPct: 0.46, yPct: 0.6, rxPct: 0.05, ryPct: 0.07 },
+  shoulders: { side: 'right', xPct: 0.63, yPct: 0.21, rxPct: 0.06, ryPct: 0.045 },
+  biceps: { side: 'right', xPct: 0.71, yPct: 0.36, rxPct: 0.045, ryPct: 0.06 },
+  hip_flexors: { side: 'right', xPct: 0.54, yPct: 0.51, rxPct: 0.05, ryPct: 0.055 },
+  quadriceps: { side: 'right', xPct: 0.59, yPct: 0.65, rxPct: 0.08, ryPct: 0.11 },
 };
 
 const BACK_MARKERS: Record<string, MarkerConfig> = {
-  upper_back: { side: 'left', xPct: 0.39, yPct: 0.26 },
-  lower_back: { side: 'left', xPct: 0.44, yPct: 0.45 },
-  glutes: { side: 'left', xPct: 0.41, yPct: 0.52 },
-  hamstrings: { side: 'left', xPct: 0.38, yPct: 0.64 },
-  triceps: { side: 'right', xPct: 0.72, yPct: 0.37 },
-  hip_abductors: { side: 'right', xPct: 0.67, yPct: 0.49 },
-  calves: { side: 'right', xPct: 0.62, yPct: 0.8 },
+  upper_back: { side: 'left', xPct: 0.39, yPct: 0.26, rxPct: 0.09, ryPct: 0.07 },
+  lower_back: { side: 'left', xPct: 0.44, yPct: 0.45, rxPct: 0.08, ryPct: 0.05 },
+  glutes: { side: 'left', xPct: 0.41, yPct: 0.52, rxPct: 0.075, ryPct: 0.06 },
+  hamstrings: { side: 'left', xPct: 0.38, yPct: 0.64, rxPct: 0.065, ryPct: 0.11 },
+  triceps: { side: 'right', xPct: 0.72, yPct: 0.37, rxPct: 0.045, ryPct: 0.06 },
+  hip_abductors: { side: 'right', xPct: 0.67, yPct: 0.49, rxPct: 0.05, ryPct: 0.065 },
+  calves: { side: 'right', xPct: 0.62, yPct: 0.8, rxPct: 0.05, ryPct: 0.09 },
 };
 
 export interface BodyMuscleDatum {
   muscle_group_name: string;
   session_count: number;
+  total_volume?: number;
 }
 
 interface BodyMuscleDiagramProps {
   data: BodyMuscleDatum[];
   view: 'front' | 'back';
+  // 'pins' (varsayılan): pin + isim/antrenman sayısı etiketi.
+  // 'paint': kas grubunu doğrudan siluet üzerinde, çalışma yüküne göre
+  // opaklığı değişen bir renkle boyar — etiket/pin göstermez.
+  mode?: 'pins' | 'paint';
 }
 
-export function BodyMuscleDiagram({ data, view }: BodyMuscleDiagramProps) {
+export function BodyMuscleDiagram({ data, view, mode = 'pins' }: BodyMuscleDiagramProps) {
   const markers = view === 'front' ? FRONT_MARKERS : BACK_MARKERS;
   const image = view === 'front' ? FRONT_IMAGE : BACK_IMAGE;
   const activeRows = data.filter((d) => d.session_count > 0 && markers[d.muscle_group_name]);
   const [containerWidth, setContainerWidth] = useState(WIDTH);
   const scale = containerWidth / WIDTH;
+
+  if (mode === 'paint') {
+    const totalVolume = data.reduce((sum, d) => sum + (d.total_volume ?? 0), 0);
+    const paintRows = activeRows
+      .map((row) => ({
+        name: row.muscle_group_name,
+        fraction: totalVolume > 0 ? (row.total_volume ?? 0) / totalVolume : 0,
+      }))
+      .filter((row) => markers[row.name]);
+
+    return (
+      <View
+        onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+        style={{ width: '100%', maxWidth: WIDTH, aspectRatio: WIDTH / HEIGHT }}>
+        <View
+          style={{
+            position: 'absolute',
+            left: IMAGE_LEFT * scale,
+            top: 0,
+            width: IMAGE_WIDTH * scale,
+            height: IMAGE_HEIGHT * scale,
+            borderRadius: 6 * scale,
+            overflow: 'hidden',
+            backgroundColor: '#fbf6f0',
+          }}>
+          <Image source={image} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+        </View>
+
+        <Svg
+          width={IMAGE_WIDTH * scale}
+          height={IMAGE_HEIGHT * scale}
+          viewBox={`0 0 ${IMAGE_WIDTH} ${IMAGE_HEIGHT}`}
+          style={{ position: 'absolute', top: 0, left: IMAGE_LEFT * scale }}>
+          {paintRows.map((row) => {
+            const marker = markers[row.name];
+            const opacity = 0.3 + row.fraction * 0.65;
+            return (
+              <Ellipse
+                key={row.name}
+                cx={marker.xPct * IMAGE_WIDTH}
+                cy={marker.yPct * IMAGE_HEIGHT}
+                rx={marker.rxPct * IMAGE_WIDTH}
+                ry={marker.ryPct * IMAGE_HEIGHT}
+                fill={ClubColors.yellow}
+                opacity={opacity}
+              />
+            );
+          })}
+        </Svg>
+
+        {paintRows.length === 0 ? (
+          <View style={styles.emptyOverlay}>
+            <Text style={styles.emptyText}>Bu tarih aralığında kayıtlı veri yok.</Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View
