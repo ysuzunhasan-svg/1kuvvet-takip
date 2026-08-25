@@ -1,13 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  addPlayerSessionEntry,
   deleteSession,
   getOrCreateCardSession,
   listAttendance,
+  listCardExercises,
+  listExercisesLibrary,
   listPlayerAttendedSessions,
+  listPlayerRecentWeights,
+  listPlayerSessionEntries,
   listSessionDatesInRange,
   listSessionsForDate,
+  removeSessionEntry,
   setAttendanceBulk,
+  updateEntryWeight,
 } from './api';
 import type { SessionType } from '@/types/database';
 
@@ -73,5 +80,69 @@ export function useSessionsForDate(date: string | null) {
     queryKey: ['sessions-for-date', date],
     queryFn: () => listSessionsForDate(date as string),
     enabled: !!date,
+  });
+}
+
+export function useCardExercises(cardKey: string | undefined) {
+  return useQuery({
+    queryKey: ['card-exercises', cardKey],
+    queryFn: () => listCardExercises(cardKey as string),
+    enabled: !!cardKey,
+  });
+}
+
+export function useExercisesLibrary() {
+  return useQuery({
+    queryKey: ['exercises-library'],
+    queryFn: listExercisesLibrary,
+  });
+}
+
+export function usePlayerSessionEntries(sessionId: string | undefined, playerId: string | undefined) {
+  return useQuery({
+    queryKey: ['player-session-entries', sessionId, playerId],
+    queryFn: () => listPlayerSessionEntries(sessionId as string, playerId as string),
+    enabled: !!sessionId && !!playerId,
+  });
+}
+
+export function useAddPlayerSessionEntry(sessionId: string, playerId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (exerciseId: string) => addPlayerSessionEntry(sessionId, playerId, exerciseId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+    },
+  });
+}
+
+export function useRemoveSessionEntry(sessionId: string, playerId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (entryId: string) => removeSessionEntry(entryId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
+      queryClient.invalidateQueries({ queryKey: ['muscle-volume'] });
+    },
+  });
+}
+
+export function useUpdateEntryWeight(sessionId: string, playerId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ entryId, weightKg }: { entryId: string; weightKg: number | null }) =>
+      updateEntryWeight(entryId, weightKg),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['player-session-entries', sessionId, playerId] });
+    },
+  });
+}
+
+export function usePlayerRecentWeights(playerId: string | undefined) {
+  return useQuery({
+    queryKey: ['player-recent-weights', playerId],
+    queryFn: () => listPlayerRecentWeights(playerId as string),
+    enabled: !!playerId,
   });
 }

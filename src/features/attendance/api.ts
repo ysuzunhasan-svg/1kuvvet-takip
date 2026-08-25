@@ -53,9 +53,10 @@ export async function setAttendanceBulk(sessionId: string, rows: { playerId: str
 }
 
 // Katılım kaydedildiğinde, kartın kendi hareket programını (card_exercises)
-// katılan oyuncuların session_entries'ine otomatik yansıtır; katılmayanların
-// bu session'a ait otomatik kayıtlarını temizler. Böylece kümülatif kas grubu
-// raporu, ekstra bir hareket girişi yapılmadan kartın programından hesaplanır.
+// henüz hiç hareket kaydı olmayan katılan oyunculara otomatik uygular;
+// katılmayanların bu session'a ait kayıtlarını temizler. Zaten hareket kaydı
+// olan (elle düzenlenmiş olabilecek) oyuncuların kayıtlarına dokunmaz — aksi
+// halde her "Kaydet" basışında ağırlık/özel hareket düzenlemeleri silinirdi.
 async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: string; attended: boolean }[]) {
   const attendedPlayerIds = rows.filter((r) => r.attended).map((r) => r.playerId);
   const notAttendedPlayerIds = rows.filter((r) => !r.attended).map((r) => r.playerId);
@@ -79,6 +80,16 @@ async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: s
   if (sessionError) throw sessionError;
   if (!session.card_key) return;
 
+  const { data: existingRows, error: existingError } = await supabase
+    .from('session_entries')
+    .select('player_id')
+    .eq('session_id', sessionId)
+    .in('player_id', attendedPlayerIds);
+  if (existingError) throw existingError;
+  const existingPlayerIds = new Set((existingRows ?? []).map((r) => r.player_id));
+  const playersNeedingTemplate = attendedPlayerIds.filter((id) => !existingPlayerIds.has(id));
+  if (playersNeedingTemplate.length === 0) return;
+
   const { data: cardExercises, error: cardError } = await supabase
     .from('card_exercises')
     .select('exercise_id, sets, reps_per_set')
@@ -86,14 +97,7 @@ async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: s
   if (cardError) throw cardError;
   if (!cardExercises || cardExercises.length === 0) return;
 
-  const { error: deleteError } = await supabase
-    .from('session_entries')
-    .delete()
-    .eq('session_id', sessionId)
-    .in('player_id', attendedPlayerIds);
-  if (deleteError) throw deleteError;
-
-  const entries = attendedPlayerIds.flatMap((playerId) =>
+  const entries = playersNeedingTemplate.flatMap((playerId) =>
     cardExercises.map((ex) => ({
       session_id: sessionId,
       player_id: playerId,
@@ -104,6 +108,133 @@ async function syncEntriesWithCardProgram(sessionId: string, rows: { playerId: s
   );
   const { error: insertError } = await supabase.from('session_entries').insert(entries);
   if (insertError) throw insertError;
+}
+
+export interface CardExerciseRow {
+  id: string;
+  exercise_id: string;
+  exercise_name: string;
+  sets: number;
+  reps_per_set: number;
+  sort_order: number;
+}
+
+// Kartın referans programı — kart ekranında görsel yerine gösterilen salt
+// okunur hareket listesi (oyuncudan bağımsız, kartın kendi tanımı).
+export async function listCardExercises(cardKey: string) {
+  const { data, error } = await supabase
+    .from('card_exercises')
+    .select('id, exercise_id, sets, reps_per_set, sort_order, exercises(name)')
+    .eq('card_key', cardKey)
+    .order('sort_order');
+  if (error) throw error;
+  return ((data ?? []) as unknown as { id: string; exercise_id: string; sets: number; reps_per_set: number; sort_order: number; exercises: { name: string } | null }[]).map(
+    (row) => ({
+      id: row.id,
+      exercise_id: row.exercise_id,
+      exercise_name: row.exercises?.name ?? '',
+      sets: row.sets,
+      reps_per_set: row.reps_per_set,
+      sort_order: row.sort_order,
+    })
+  ) as CardExerciseRow[];
+}
+
+export interface ExerciseOption {
+  id: string;
+  name: string;
+}
+
+export async function listExercisesLibrary() {
+  const { data, error } = await supabase.from('exercises').select('id, name').eq('is_active', true).order('name');
+  if (error) throw error;
+  return (data ?? []) as ExerciseOption[];
+}
+
+export interface PlayerSessionEntry {
+  id: string;
+  exercise_id: string;
+  exercise_name: string;
+  sets: number;
+  reps_per_set: number;
+  load_kg: number | null;
+}
+
+// Bir oyuncunun bu session'daki hareket listesi — kartın standart programıyla
+// başlar ama oyuncuya özel eklenen/çıkarılan hareketleri de yansıtır (o gün
+// farklı bir program yapmış olabilir).
+export async function listPlayerSessionEntries(sessionId: string, playerId: string) {
+  const { data, error } = await supabase
+    .from('session_entries')
+    .select('id, exercise_id, sets, reps_per_set, load_kg, exercises(name)')
+    .eq('session_id', sessionId)
+    .eq('player_id', playerId)
+    .order('created_at');
+  if (error) throw error;
+  return ((data ?? []) as unknown as { id: string; exercise_id: string; sets: number; reps_per_set: number; load_kg: number | null; exercises: { name: string } | null }[]).map(
+    (row) => ({
+      id: row.id,
+      exercise_id: row.exercise_id,
+      exercise_name: row.exercises?.name ?? '',
+      sets: row.sets,
+      reps_per_set: row.reps_per_set,
+      load_kg: row.load_kg,
+    })
+  ) as PlayerSessionEntry[];
+}
+
+export async function addPlayerSessionEntry(sessionId: string, playerId: string, exerciseId: string) {
+  const { error } = await supabase
+    .from('session_entries')
+    .insert({ session_id: sessionId, player_id: playerId, exercise_id: exerciseId, sets: 3, reps_per_set: 10 });
+  if (error) throw error;
+}
+
+export async function removeSessionEntry(entryId: string) {
+  const { error } = await supabase.from('session_entries').delete().eq('id', entryId);
+  if (error) throw error;
+}
+
+export async function updateEntryWeight(entryId: string, weightKg: number | null) {
+  const { error } = await supabase.from('session_entries').update({ load_kg: weightKg }).eq('id', entryId);
+  if (error) throw error;
+}
+
+export interface PlayerRecentWeight {
+  exercise_id: string;
+  exercise_name: string;
+  load_kg: number;
+  session_date: string;
+}
+
+// Oyuncunun her hareket için en son kaydedilen ağırlığı — oyuncu raporunda
+// gösterilir.
+export async function listPlayerRecentWeights(playerId: string) {
+  const { data, error } = await supabase
+    .from('session_entries')
+    .select('exercise_id, load_kg, exercises(name), training_sessions(session_date)')
+    .eq('player_id', playerId)
+    .not('load_kg', 'is', null)
+    .order('session_date', { referencedTable: 'training_sessions', ascending: false })
+    .limit(200);
+  if (error) throw error;
+  const rows = (data ?? []) as unknown as {
+    exercise_id: string;
+    load_kg: number;
+    exercises: { name: string } | null;
+    training_sessions: { session_date: string } | null;
+  }[];
+  const byExercise = new Map<string, PlayerRecentWeight>();
+  rows.forEach((row) => {
+    if (!row.training_sessions || byExercise.has(row.exercise_id)) return;
+    byExercise.set(row.exercise_id, {
+      exercise_id: row.exercise_id,
+      exercise_name: row.exercises?.name ?? '',
+      load_kg: row.load_kg,
+      session_date: row.training_sessions.session_date,
+    });
+  });
+  return Array.from(byExercise.values()).sort((a, b) => a.exercise_name.localeCompare(b.exercise_name));
 }
 
 export async function deleteSession(sessionId: string) {

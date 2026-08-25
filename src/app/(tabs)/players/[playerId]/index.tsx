@@ -8,7 +8,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { SESSION_TYPE_LABEL, SESSION_TYPES } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
-import { usePlayerAttendedSessions } from '@/features/attendance/hooks';
+import { usePlayerAttendedSessions, usePlayerRecentWeights } from '@/features/attendance/hooks';
 import { usePlayer } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { AttendedSession } from '@/features/attendance/api';
@@ -32,6 +32,7 @@ export default function PlayerDetailScreen() {
   const { playerId } = useLocalSearchParams<{ playerId: string }>();
   const { data: player } = usePlayer(playerId);
   const { data: attended, isLoading } = usePlayerAttendedSessions(playerId);
+  const { data: recentWeights } = usePlayerRecentWeights(playerId);
   const theme = useTheme();
 
   const weekSummary = useMemo(
@@ -66,6 +67,24 @@ export default function PlayerDetailScreen() {
             <AttendanceSummaryCard title="Bu Ay" summary={monthSummary} />
           </View>
         )}
+
+        {recentWeights && recentWeights.length > 0 ? (
+          <View style={{ ...styles.summaryCard, backgroundColor: theme.backgroundElement, marginTop: Spacing.three }}>
+            <ThemedText type="smallBold">Son Ağırlıklar</ThemedText>
+            <View style={{ gap: Spacing.two }}>
+              {recentWeights.map((row) => (
+                <View key={row.exercise_id} style={styles.weightRow}>
+                  <ThemedText type="small" style={{ flex: 1 }}>
+                    {row.exercise_name}
+                  </ThemedText>
+                  <ThemedText type="smallBold" themeColor="accent">
+                    {row.load_kg} kg
+                  </ThemedText>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
       </SafeAreaView>
     </ThemedView>
   );
@@ -113,5 +132,6 @@ const styles = StyleSheet.create({
   summaryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   typeRow: { flexDirection: 'row', justifyContent: 'space-around' },
   typeItem: { alignItems: 'center', gap: 2 },
+  weightRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   typeCount: { fontSize: 24 },
 });

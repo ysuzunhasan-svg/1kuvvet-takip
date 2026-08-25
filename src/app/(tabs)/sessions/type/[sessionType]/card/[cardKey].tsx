@@ -1,7 +1,7 @@
 import { format, subDays } from 'date-fns';
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Image, type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AttendanceChecklist } from '@/components/AttendanceChecklist';
@@ -9,13 +9,10 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
 import { Spacing } from '@/constants/theme';
-import { useAttendance, useCardSession } from '@/features/attendance/hooks';
+import { useAttendance, useCardExercises, useCardSession } from '@/features/attendance/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
-
-// Kartların hepsi aynı oranda export edildi (2339×1653 px).
-const CARD_ASPECT_RATIO = 1653 / 2339;
 
 export default function CardAttendanceScreen() {
   const { sessionType, cardKey, date: dateParam } = useLocalSearchParams<{
@@ -28,15 +25,11 @@ export default function CardAttendanceScreen() {
 
   const [date, setDate] = useState(dateParam || format(new Date(), 'yyyy-MM-dd'));
   const [showAttendance, setShowAttendance] = useState(false);
-  const [imageWidth, setImageWidth] = useState(0);
-
-  function handleImageContainerLayout(event: LayoutChangeEvent) {
-    setImageWidth(event.nativeEvent.layout.width);
-  }
 
   const { data: session } = useCardSession(sessionType, cardKey, date);
   const { data: players } = usePlayers();
   const { data: attendance } = useAttendance(session?.id);
+  const { data: cardExercises, isLoading: exercisesLoading } = useCardExercises(cardKey);
   const attendedCount = attendance?.filter((a) => a.attended).length ?? 0;
 
   if (!card) {
@@ -75,21 +68,34 @@ export default function CardAttendanceScreen() {
             </View>
           </View>
 
-          <View onLayout={handleImageContainerLayout}>
-            {!card.image ? (
-              <View style={{ ...styles.noImageBox, backgroundColor: theme.backgroundElement }}>
-                <ThemedText type="smallBold">{card.title}</ThemedText>
-                <ThemedText type="small" themeColor="textSecondary" style={{ textAlign: 'center' }}>
-                  Bu kart için görsel henüz eklenmedi. Katılımı yine de girebilirsiniz.
-                </ThemedText>
+          <View style={{ ...styles.exerciseCard, backgroundColor: theme.backgroundElement }}>
+            <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
+              {card.title}
+            </ThemedText>
+            {exercisesLoading ? (
+              <ActivityIndicator style={{ marginTop: Spacing.two }} />
+            ) : cardExercises && cardExercises.length > 0 ? (
+              <View style={{ gap: Spacing.two }}>
+                {cardExercises.map((exercise, index) => (
+                  <View key={exercise.id} style={styles.exerciseRow}>
+                    <ThemedText type="small" themeColor="textSecondary" style={styles.exerciseIndex}>
+                      {index + 1}.
+                    </ThemedText>
+                    <ThemedText type="small" style={{ flex: 1 }}>
+                      {exercise.exercise_name}
+                    </ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {exercise.sets}x{exercise.reps_per_set}
+                    </ThemedText>
+                  </View>
+                ))}
               </View>
-            ) : imageWidth > 0 ? (
-              <Image
-                source={card.image}
-                style={{ width: imageWidth, height: imageWidth * CARD_ASPECT_RATIO, borderRadius: Spacing.two }}
-                resizeMode="contain"
-              />
-            ) : null}
+            ) : (
+              <ThemedText type="small" themeColor="textSecondary">
+                Bu kart için henüz hareket programı tanımlanmadı. Katılımı yine de girebilirsiniz; oyuncu bazında
+                hareket ekleyebilirsiniz.
+              </ThemedText>
+            )}
           </View>
 
           <Pressable
@@ -120,12 +126,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   quickDateRow: { flexDirection: 'row', gap: Spacing.three },
-  noImageBox: {
-    padding: Spacing.five,
+  exerciseCard: {
+    padding: Spacing.three,
     borderRadius: Spacing.three,
+  },
+  exerciseRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
   },
+  exerciseIndex: { width: 20 },
   attendanceButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,
