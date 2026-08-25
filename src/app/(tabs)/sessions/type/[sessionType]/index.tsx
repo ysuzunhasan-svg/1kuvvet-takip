@@ -11,10 +11,11 @@ import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
 
 export default function SessionTypeCardsScreen() {
-  const { sessionType } = useLocalSearchParams<{ sessionType: SessionType }>();
+  const { sessionType, date } = useLocalSearchParams<{ sessionType: SessionType; date?: string }>();
   const theme = useTheme();
   const label = SESSION_TYPE_LABEL[sessionType] ?? sessionType;
   const cards = getCardsForType(sessionType);
+  const cardHrefSuffix = date ? `?date=${date}` : '';
 
   return (
     <ThemedView style={styles.container}>
@@ -30,7 +31,7 @@ export default function SessionTypeCardsScreen() {
         ) : (
           <View style={styles.list}>
             {cards.map((card) => (
-              <Link key={card.key} href={`/sessions/type/${sessionType}/card/${card.key}`} asChild>
+              <Link key={card.key} href={`/sessions/type/${sessionType}/card/${card.key}${cardHrefSuffix}`} asChild>
                 <Pressable style={{ ...styles.card, backgroundColor: theme.backgroundElement }}>
                   <Image source={card.image} style={styles.thumb} resizeMode="cover" />
                   <View style={styles.cardTextBlock}>

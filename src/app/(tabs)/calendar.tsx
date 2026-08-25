@@ -12,6 +12,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +21,7 @@ import { AttendanceChecklist } from '@/components/AttendanceChecklist';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
-import { SESSION_TYPE_LABEL } from '@/constants/sessionTypes';
+import { SESSION_TYPE_LABEL, SESSION_TYPES } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
 import { useSessionDatesInRange, useSessionsForDate } from '@/features/attendance/hooks';
 import { usePlayers } from '@/features/players/hooks';
@@ -45,10 +46,12 @@ export default function CalendarScreen() {
   const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+  const [showTypePicker, setShowTypePicker] = useState(false);
 
   function selectDate(dateKey: string) {
     setSelectedDate(dateKey);
     setExpandedSessionId(null);
+    setShowTypePicker(false);
   }
 
   const gridStart = startOfWeek(startOfMonth(visibleMonth), { weekStartsOn: 1 });
@@ -79,9 +82,38 @@ export default function CalendarScreen() {
 
   const calendarBlock = (
     <View style={isWide ? { width: CALENDAR_MAX_WIDTH } : styles.narrowCentered}>
-      <ThemedText type="subtitle" style={styles.title}>
-        Takvim
-      </ThemedText>
+      <View style={styles.titleRow}>
+        <ThemedText type="subtitle" style={styles.titleText}>
+          Takvim
+        </ThemedText>
+        <Pressable
+          onPress={() => setShowTypePicker((prev) => !prev)}
+          hitSlop={12}
+          style={{ ...styles.addButton, backgroundColor: theme.accent }}>
+          <ThemedText themeColor="onAccent" type="subtitle" style={styles.addButtonLabel}>
+            +
+          </ThemedText>
+        </Pressable>
+      </View>
+
+      {showTypePicker ? (
+        <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
+          <ThemedText type="small" themeColor="textSecondary">
+            {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman ekle
+          </ThemedText>
+          <View style={styles.typePickerRow}>
+            {SESSION_TYPES.map((type) => (
+              <Link key={type} href={`/sessions/type/${type}?date=${selectedDate}`} asChild>
+                <Pressable
+                  onPress={() => setShowTypePicker(false)}
+                  style={{ ...styles.typePickerButton, backgroundColor: theme.backgroundSelected }}>
+                  <ThemedText type="smallBold">{SESSION_TYPE_LABEL[type]}</ThemedText>
+                </Pressable>
+              </Link>
+            ))}
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.monthHeader}>
         <Pressable onPress={() => setVisibleMonth((m) => subMonths(m, 1))} hitSlop={12}>
@@ -223,7 +255,33 @@ const styles = StyleSheet.create({
   narrowCentered: { width: '100%', maxWidth: CALENDAR_MAX_WIDTH, alignSelf: 'center' },
   wideRow: { flexDirection: 'row', gap: Spacing.five, alignItems: 'flex-start' },
   wideDayColumn: { flex: 1, maxWidth: DAY_COLUMN_MAX_WIDTH },
-  title: { marginBottom: Spacing.three },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.three,
+  },
+  titleText: { marginBottom: 0 },
+  addButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonLabel: { lineHeight: 30, marginBottom: 0 },
+  typePickerCard: {
+    borderRadius: Spacing.three,
+    padding: Spacing.three,
+    marginBottom: Spacing.three,
+    gap: Spacing.two,
+  },
+  typePickerRow: { flexDirection: 'row', gap: Spacing.two, flexWrap: 'wrap' },
+  typePickerButton: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+  },
   monthHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
