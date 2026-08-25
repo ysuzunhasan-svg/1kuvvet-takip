@@ -8,7 +8,7 @@ import { AttendanceChecklist } from '@/components/AttendanceChecklist';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardByKey } from '@/constants/cards';
-import { Spacing } from '@/constants/theme';
+import { ClubColors, Spacing } from '@/constants/theme';
 import type { CardExerciseRow } from '@/features/attendance/api';
 import {
   useAddCardExercise,
@@ -331,9 +331,17 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two,
     borderRadius: Spacing.two,
     fontSize: 14,
+    borderWidth: 1.5,
+    borderColor: ClubColors.yellow,
   },
   pickerList: { maxHeight: 240 },
-  pickerItem: { padding: Spacing.two, borderRadius: Spacing.one, marginBottom: 4 },
+  pickerItem: {
+    padding: Spacing.two,
+    borderRadius: Spacing.two,
+    marginBottom: Spacing.two,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,0,0.3)',
+  },
   attendanceButton: {
     paddingVertical: Spacing.three,
     borderRadius: Spacing.two,

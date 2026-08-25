@@ -7,7 +7,7 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { getCardsForType } from '@/constants/cards';
 import { SESSION_TYPE_LABEL } from '@/constants/sessionTypes';
-import { Spacing } from '@/constants/theme';
+import { ClubColors, Spacing } from '@/constants/theme';
 import { useExercisesLibrary } from '@/features/attendance/hooks';
 import { useCreateCard, useDbCardsForType } from '@/features/cards/hooks';
 import { useTheme } from '@/hooks/use-theme';
@@ -151,7 +151,7 @@ function CreateCardForm({
         onChangeText={setSearch}
         placeholder="Hareket ara..."
         placeholderTextColor={theme.textSecondary}
-        style={[styles.input, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
+        style={[styles.searchInput, { color: theme.text, backgroundColor: theme.backgroundSelected }]}
       />
       <ScrollView style={styles.exerciseList} nestedScrollEnabled>
         {filtered.map((exercise) => {
@@ -222,11 +222,21 @@ const styles = StyleSheet.create({
     borderRadius: Spacing.two,
     fontSize: 14,
   },
+  searchInput: {
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two,
+    borderRadius: Spacing.two,
+    fontSize: 14,
+    borderWidth: 1.5,
+    borderColor: ClubColors.yellow,
+  },
   exerciseList: { maxHeight: 260 },
   exerciseItem: {
     padding: Spacing.two,
-    borderRadius: Spacing.one,
-    marginBottom: 4,
+    borderRadius: Spacing.two,
+    marginBottom: Spacing.two,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,0,0.3)',
   },
   formButtonRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.one },
   createButton: {

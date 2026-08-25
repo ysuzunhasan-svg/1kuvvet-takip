@@ -309,7 +309,13 @@ const styles = StyleSheet.create({
   pickerWrap: { gap: Spacing.two },
   pickerHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pickerList: { maxHeight: 240 },
-  pickerItem: { padding: Spacing.two, borderRadius: Spacing.one, marginBottom: 4 },
+  pickerItem: {
+    padding: Spacing.two,
+    borderRadius: Spacing.two,
+    marginBottom: Spacing.two,
+    borderWidth: 1,
+    borderColor: 'rgba(255,209,0,0.3)',
+  },
   nameInput: {
     paddingHorizontal: Spacing.three,
     paddingVertical: Spacing.two,
