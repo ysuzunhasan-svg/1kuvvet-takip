@@ -16,6 +16,7 @@ import {
   useCardSession,
   useUpdateCardExerciseDefaultWeight,
 } from '@/features/attendance/hooks';
+import { useDbCardByKey } from '@/features/cards/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
@@ -26,7 +27,11 @@ export default function CardAttendanceScreen() {
     cardKey: string;
     date?: string;
   }>();
-  const card = getCardByKey(cardKey);
+  const staticCard = getCardByKey(cardKey);
+  // Statik listede yoksa (kullanıcının uygulamadan oluşturduğu bir kart
+  // olabilir) veritabanından ara.
+  const { data: dbCard, isLoading: dbCardLoading } = useDbCardByKey(staticCard ? undefined : cardKey);
+  const card = staticCard ?? (dbCard ? { key: dbCard.key, dayCode: dbCard.dayCode, title: dbCard.title } : undefined);
   const theme = useTheme();
 
   const [date, setDate] = useState(dateParam || format(new Date(), 'yyyy-MM-dd'));
@@ -43,7 +48,11 @@ export default function CardAttendanceScreen() {
     return (
       <ThemedView style={styles.container}>
         <SafeAreaView style={styles.safeArea}>
-          <ThemedText themeColor="textSecondary">Kart bulunamadı.</ThemedText>
+          {dbCardLoading ? (
+            <ActivityIndicator style={{ marginTop: Spacing.four }} />
+          ) : (
+            <ThemedText themeColor="textSecondary">Kart bulunamadı.</ThemedText>
+          )}
         </SafeAreaView>
       </ThemedView>
     );

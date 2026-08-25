@@ -25,6 +25,7 @@ import { SESSION_TYPE_LABEL, SESSION_TYPES } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
 import { getOrCreateCardSession } from '@/features/attendance/api';
 import { useDeleteSession, useSessionDatesInRange, useSessionsForDate } from '@/features/attendance/hooks';
+import { useAllDbCards, useDbCardsForType } from '@/features/cards/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 import type { SessionType } from '@/types/database';
@@ -55,6 +56,15 @@ export default function CalendarScreen() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const deleteSessionMutation = useDeleteSession();
   const queryClient = useQueryClient();
+  const { data: allDbCards } = useAllDbCards();
+  const dbCardMap = useMemo(() => new Map((allDbCards ?? []).map((c) => [c.key, c])), [allDbCards]);
+  function resolveCard(key: string) {
+    return getCardByKey(key) ?? dbCardMap.get(key);
+  }
+  const { data: addTypeDbCards } = useDbCardsForType(addSessionType);
+  const addTypeCards = addSessionType
+    ? [...getCardsForType(addSessionType), ...(addTypeDbCards ?? [])]
+    : [];
 
   function selectDate(dateKey: string) {
     setSelectedDate(dateKey);
@@ -96,7 +106,7 @@ export default function CalendarScreen() {
   const labelsByDate = useMemo(() => {
     const map = new Map<string, string[]>();
     (sessionDates ?? []).forEach((s) => {
-      const card = s.card_key ? getCardByKey(s.card_key) : undefined;
+      const card = s.card_key ? resolveCard(s.card_key) : undefined;
       const dayCode = card?.dayCode ?? s.card_key ?? '';
       const label = `${dayCode} ${SESSION_TYPE_LABEL[s.session_type]}`.trim();
       const existing = map.get(s.session_date) ?? [];
@@ -104,7 +114,7 @@ export default function CalendarScreen() {
       map.set(s.session_date, existing);
     });
     return map;
-  }, [sessionDates]);
+  }, [sessionDates, dbCardMap]);
 
   const { data: daySessions, isLoading: daySessionsLoading } = useSessionsForDate(selectedDate);
   const { data: players } = usePlayers();
@@ -196,7 +206,7 @@ export default function CalendarScreen() {
       ) : daySessions && daySessions.length > 0 ? (
         <View style={{ gap: Spacing.two }}>
           {daySessions.map((session) => {
-            const card = session.card_key ? getCardByKey(session.card_key) : undefined;
+            const card = session.card_key ? resolveCard(session.card_key) : undefined;
             const expanded = expandedSessionId === session.id;
             return (
               <View key={session.id}>
@@ -290,13 +300,13 @@ export default function CalendarScreen() {
                       {SESSION_TYPE_LABEL[addSessionType]} — kart seç
                     </ThemedText>
                   </View>
-                  {getCardsForType(addSessionType).length === 0 ? (
+                  {addTypeCards.length === 0 ? (
                     <ThemedText type="small" themeColor="textSecondary">
                       {SESSION_TYPE_LABEL[addSessionType]} için henüz kart yüklenmedi.
                     </ThemedText>
                   ) : (
                     <View style={styles.typePickerRow}>
-                      {getCardsForType(addSessionType).map((card) => (
+                      {addTypeCards.map((card) => (
                         <Pressable
                           key={card.key}
                           disabled={creatingCardKey !== null}
@@ -324,7 +334,7 @@ export default function CalendarScreen() {
               {daySessions && daySessions.length > 0 ? (
                 <View style={{ gap: Spacing.two }}>
                   {daySessions.map((session) => {
-                    const card = session.card_key ? getCardByKey(session.card_key) : undefined;
+                    const card = session.card_key ? resolveCard(session.card_key) : undefined;
                     const confirming = confirmDeleteId === session.id;
                     return (
                       <View key={session.id} style={{ ...styles.deleteRow, backgroundColor: theme.backgroundSelected }}>
