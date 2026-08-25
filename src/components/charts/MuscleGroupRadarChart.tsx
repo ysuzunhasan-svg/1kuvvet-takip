@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Polygon } from 'react-native-svg';
 
-import { ClubColors } from '@/constants/theme';
+import { ThemedText } from '@/components/themed-text';
+import { ClubColors, Spacing } from '@/constants/theme';
 import { muscleGroupLabel, MUSCLE_GROUP_ORDER } from '@/constants/muscleGroups';
 
 interface MuscleGroupRadarDatum {
   muscle_group_name: string;
+  total_sets: number;
   total_volume: number;
 }
 
@@ -32,18 +34,18 @@ function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
 // hacmi (total_volume) toplam üzerinden orana çevrilip her ekseni bir kas
 // grubuna sabitleyen bir örümcek grafiğe dönüştürülür. Eksen sırası
 // MUSCLE_GROUP_ORDER ile sabit, böylece farklı gün/haftalarda şekil
-// karşılaştırılabilir kalır.
+// karşılaştırılabilir kalır. Ham set/tekrar sayıları grafiğin altındaki
+// listede gösterilir (yüzde tek başına "ne kadar iş yapıldığını" değil,
+// sadece dağılımı anlatır).
 export function MuscleGroupRadarChart({ data }: MuscleGroupRadarChartProps) {
   const [containerWidth, setContainerWidth] = useState(SIZE);
   const scale = containerWidth / SIZE;
 
-  const volumeByGroup = new Map(data.map((d) => [d.muscle_group_name, d.total_volume]));
+  const rowByGroup = new Map(data.map((d) => [d.muscle_group_name, d]));
   const total = data.reduce((sum, d) => sum + d.total_volume, 0);
 
   if (total === 0) {
-    return (
-      <Text style={styles.emptyText}>Bu tarih aralığında kayıtlı hareket verisi yok.</Text>
-    );
+    return <Text style={styles.emptyText}>Bu tarih aralığında kayıtlı hareket verisi yok.</Text>;
   }
 
   const N = MUSCLE_GROUP_ORDER.length;
@@ -51,46 +53,48 @@ export function MuscleGroupRadarChart({ data }: MuscleGroupRadarChartProps) {
 
   const axes = MUSCLE_GROUP_ORDER.map((name, i) => {
     const angle = i * angleStep;
-    const volume = volumeByGroup.get(name) ?? 0;
+    const row = rowByGroup.get(name);
+    const volume = row?.total_volume ?? 0;
+    const sets = row?.total_sets ?? 0;
     const fraction = volume / total;
     const dataPoint = polarToCartesian(CENTER, CENTER, RADIUS * fraction, angle);
     const axisEnd = polarToCartesian(CENTER, CENTER, RADIUS, angle);
     const labelPoint = polarToCartesian(CENTER, CENTER, LABEL_RADIUS, angle);
-    return { name, angle, fraction, dataPoint, axisEnd, labelPoint };
+    return { name, angle, fraction, sets, volume, dataPoint, axisEnd, labelPoint };
   });
 
   const polygonPoints = axes.map((a) => `${a.dataPoint.x},${a.dataPoint.y}`).join(' ');
+  const activeAxes = axes.filter((a) => a.fraction > 0);
 
   return (
-    <View
-      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
-      style={{ width: '100%', maxWidth: SIZE, aspectRatio: 1 }}>
-      <Svg width={SIZE * scale} height={SIZE * scale} viewBox={`0 0 ${SIZE} ${SIZE}`}>
-        {RING_STEPS.map((step) => {
-          const ringPoints = MUSCLE_GROUP_ORDER.map((_, i) => {
-            const p = polarToCartesian(CENTER, CENTER, RADIUS * step, i * angleStep);
-            return `${p.x},${p.y}`;
-          }).join(' ');
-          return <Polygon key={step} points={ringPoints} fill="none" stroke={GRID_COLOR} strokeWidth={1} />;
-        })}
+    <View style={{ width: '100%', maxWidth: SIZE, gap: Spacing.four }}>
+      <View
+        onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+        style={{ width: '100%', maxWidth: SIZE, aspectRatio: 1 }}>
+        <Svg width={SIZE * scale} height={SIZE * scale} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+          {RING_STEPS.map((step) => {
+            const ringPoints = MUSCLE_GROUP_ORDER.map((_, i) => {
+              const p = polarToCartesian(CENTER, CENTER, RADIUS * step, i * angleStep);
+              return `${p.x},${p.y}`;
+            }).join(' ');
+            return <Polygon key={step} points={ringPoints} fill="none" stroke={GRID_COLOR} strokeWidth={1} />;
+          })}
 
-        {axes.map((a) => (
-          <Line
-            key={`spoke-${a.name}`}
-            x1={CENTER}
-            y1={CENTER}
-            x2={a.axisEnd.x}
-            y2={a.axisEnd.y}
-            stroke={GRID_COLOR}
-            strokeWidth={1}
-          />
-        ))}
+          {axes.map((a) => (
+            <Line
+              key={`spoke-${a.name}`}
+              x1={CENTER}
+              y1={CENTER}
+              x2={a.axisEnd.x}
+              y2={a.axisEnd.y}
+              stroke={GRID_COLOR}
+              strokeWidth={1}
+            />
+          ))}
 
-        <Polygon points={polygonPoints} fill={FILL_COLOR} stroke={ClubColors.yellow} strokeWidth={2} />
+          <Polygon points={polygonPoints} fill={FILL_COLOR} stroke={ClubColors.yellow} strokeWidth={2} />
 
-        {axes
-          .filter((a) => a.fraction > 0)
-          .map((a) => (
+          {activeAxes.map((a) => (
             <Circle
               key={`dot-${a.name}`}
               cx={a.dataPoint.x}
@@ -101,26 +105,46 @@ export function MuscleGroupRadarChart({ data }: MuscleGroupRadarChartProps) {
               strokeWidth={1}
             />
           ))}
-      </Svg>
+        </Svg>
 
-      {axes.map((a) => (
-        <View
-          key={`label-${a.name}`}
-          style={{
-            position: 'absolute',
-            top: (a.labelPoint.y - 16) * scale,
-            left: (a.labelPoint.x - LABEL_BOX_WIDTH / 2) * scale,
-            width: LABEL_BOX_WIDTH * scale,
-            alignItems: 'center',
-          }}>
-          <Text style={[styles.labelName, { fontSize: 11 * scale }]} numberOfLines={2}>
-            {muscleGroupLabel(a.name)}
-          </Text>
-          {a.fraction > 0 ? (
-            <Text style={[styles.labelPct, { fontSize: 11 * scale }]}>{Math.round(a.fraction * 100)}%</Text>
-          ) : null}
-        </View>
-      ))}
+        {axes.map((a) => (
+          <View
+            key={`label-${a.name}`}
+            style={{
+              position: 'absolute',
+              top: (a.labelPoint.y - 16) * scale,
+              left: (a.labelPoint.x - LABEL_BOX_WIDTH / 2) * scale,
+              width: LABEL_BOX_WIDTH * scale,
+              alignItems: 'center',
+            }}>
+            <Text style={[styles.labelName, { fontSize: 11 * scale }]} numberOfLines={2}>
+              {muscleGroupLabel(a.name)}
+            </Text>
+            {a.fraction > 0 ? (
+              <Text style={[styles.labelPct, { fontSize: 11 * scale }]}>{Math.round(a.fraction * 100)}%</Text>
+            ) : null}
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.legend}>
+        {activeAxes
+          .slice()
+          .sort((a, b) => b.fraction - a.fraction)
+          .map((a) => (
+            <View key={`legend-${a.name}`} style={styles.legendRow}>
+              <ThemedText type="small" style={styles.legendLabel} numberOfLines={1}>
+                {muscleGroupLabel(a.name)}
+              </ThemedText>
+              <ThemedText type="small" themeColor="textSecondary">
+                {a.sets} set · {a.volume} tekrar
+              </ThemedText>
+              <ThemedText type="smallBold" themeColor="accent" style={styles.legendPct}>
+                {Math.round(a.fraction * 100)}%
+              </ThemedText>
+            </View>
+          ))}
+      </View>
     </View>
   );
 }
@@ -140,4 +164,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
   },
+  legend: { width: '100%', gap: Spacing.two },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+  },
+  legendLabel: { flex: 1 },
+  legendPct: { width: 44, textAlign: 'right' },
 });
