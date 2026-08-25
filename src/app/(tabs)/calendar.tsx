@@ -12,20 +12,22 @@ import {
   subMonths,
 } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Link } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { AttendanceChecklist } from '@/components/AttendanceChecklist';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { getCardByKey } from '@/constants/cards';
+import { getCardByKey, getCardsForType } from '@/constants/cards';
 import { SESSION_TYPE_LABEL, SESSION_TYPES } from '@/constants/sessionTypes';
 import { Spacing } from '@/constants/theme';
+import { getOrCreateCardSession } from '@/features/attendance/api';
 import { useDeleteSession, useSessionDatesInRange, useSessionsForDate } from '@/features/attendance/hooks';
 import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
+import type { SessionType } from '@/types/database';
 
 const WEEKDAY_LABELS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const CALENDAR_MAX_WIDTH = 500;
@@ -47,14 +49,18 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [addSessionType, setAddSessionType] = useState<SessionType | null>(null);
+  const [creatingCardKey, setCreatingCardKey] = useState<string | null>(null);
   const [showDeletePicker, setShowDeletePicker] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const deleteSessionMutation = useDeleteSession();
+  const queryClient = useQueryClient();
 
   function selectDate(dateKey: string) {
     setSelectedDate(dateKey);
     setExpandedSessionId(null);
     setShowTypePicker(false);
+    setAddSessionType(null);
     setShowDeletePicker(false);
     setConfirmDeleteId(null);
   }
@@ -62,6 +68,20 @@ export default function CalendarScreen() {
   function confirmDeleteSession(sessionId: string) {
     deleteSessionMutation.mutate(sessionId);
     setConfirmDeleteId(null);
+  }
+
+  async function addCardSession(sessionType: SessionType, cardKey: string) {
+    setCreatingCardKey(cardKey);
+    try {
+      const session = await getOrCreateCardSession(sessionType, cardKey, selectedDate);
+      await queryClient.invalidateQueries({ queryKey: ['sessions-for-date'] });
+      await queryClient.invalidateQueries({ queryKey: ['session-dates'] });
+      setExpandedSessionId(session.id);
+      setShowTypePicker(false);
+      setAddSessionType(null);
+    } finally {
+      setCreatingCardKey(null);
+    }
   }
 
   const gridStart = startOfWeek(startOfMonth(visibleMonth), { weekStartsOn: 1 });
@@ -216,6 +236,7 @@ export default function CalendarScreen() {
             <Pressable
               onPress={() => {
                 setShowTypePicker((prev) => !prev);
+                setAddSessionType(null);
                 setShowDeletePicker(false);
                 setConfirmDeleteId(null);
               }}
@@ -241,20 +262,57 @@ export default function CalendarScreen() {
 
           {showTypePicker ? (
             <View style={{ ...styles.typePickerCard, backgroundColor: theme.backgroundElement }}>
-              <ThemedText type="small" themeColor="textSecondary">
-                {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman ekle
-              </ThemedText>
-              <View style={styles.typePickerRow}>
-                {SESSION_TYPES.map((type) => (
-                  <Link key={type} href={`/sessions/type/${type}?date=${selectedDate}`} asChild>
-                    <Pressable
-                      onPress={() => setShowTypePicker(false)}
-                      style={{ ...styles.typePickerButton, backgroundColor: theme.backgroundSelected }}>
-                      <ThemedText type="smallBold">{SESSION_TYPE_LABEL[type]}</ThemedText>
+              {addSessionType === null ? (
+                <>
+                  <ThemedText type="small" themeColor="textSecondary">
+                    {format(parseISO(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })} için antrenman ekle
+                  </ThemedText>
+                  <View style={styles.typePickerRow}>
+                    {SESSION_TYPES.map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => setAddSessionType(type)}
+                        style={{ ...styles.typePickerButton, backgroundColor: theme.backgroundSelected }}>
+                        <ThemedText type="smallBold">{SESSION_TYPE_LABEL[type]}</ThemedText>
+                      </Pressable>
+                    ))}
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={styles.typePickerHeaderRow}>
+                    <Pressable onPress={() => setAddSessionType(null)} hitSlop={8}>
+                      <ThemedText type="small" themeColor="accent">
+                        ‹ Geri
+                      </ThemedText>
                     </Pressable>
-                  </Link>
-                ))}
-              </View>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {SESSION_TYPE_LABEL[addSessionType]} — kart seç
+                    </ThemedText>
+                  </View>
+                  {getCardsForType(addSessionType).length === 0 ? (
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {SESSION_TYPE_LABEL[addSessionType]} için henüz kart yüklenmedi.
+                    </ThemedText>
+                  ) : (
+                    <View style={styles.typePickerRow}>
+                      {getCardsForType(addSessionType).map((card) => (
+                        <Pressable
+                          key={card.key}
+                          disabled={creatingCardKey !== null}
+                          onPress={() => addCardSession(addSessionType, card.key)}
+                          style={{ ...styles.typePickerButton, backgroundColor: theme.backgroundSelected }}>
+                          {creatingCardKey === card.key ? (
+                            <ActivityIndicator size="small" />
+                          ) : (
+                            <ThemedText type="smallBold">{card.dayCode}</ThemedText>
+                          )}
+                        </Pressable>
+                      ))}
+                    </View>
+                  )}
+                </>
+              )}
             </View>
           ) : null}
 
@@ -358,6 +416,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.three,
     gap: Spacing.two,
   },
+  typePickerHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   typePickerRow: { flexDirection: 'row', gap: Spacing.two, flexWrap: 'wrap' },
   typePickerButton: {
     paddingHorizontal: Spacing.three,
