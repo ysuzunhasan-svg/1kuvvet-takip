@@ -5,7 +5,6 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, useWindowDimensio
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PlayerSelector } from '@/components/PlayerSelector';
-import { BODY_DIAGRAM_WIDTH, BodyMuscleDiagram } from '@/components/charts/BodyMuscleDiagram';
 import { MuscleGroupBarChart } from '@/components/charts/MuscleGroupBarChart';
 import { MuscleGroupRadarChart } from '@/components/charts/MuscleGroupRadarChart';
 import { ThemedText } from '@/components/themed-text';
@@ -22,7 +21,6 @@ import { usePlayers } from '@/features/players/hooks';
 import { useTheme } from '@/hooks/use-theme';
 
 const DESKTOP_BREAKPOINT = 760;
-const BODY_ROW_BREAKPOINT = 1100;
 
 type ReportScope = 'team' | 'player';
 type Granularity = 'day' | 'week';
@@ -101,7 +99,6 @@ function PlayerReport() {
   const theme = useTheme();
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth >= DESKTOP_BREAKPOINT;
-  const isBodyRowWide = windowWidth >= BODY_ROW_BREAKPOINT;
 
   const { data: players } = usePlayers();
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | undefined>(undefined);
@@ -212,38 +209,14 @@ function PlayerReport() {
             {isLoading ? (
               <ActivityIndicator style={{ marginTop: Spacing.four }} />
             ) : (
-              <>
-                <View style={isBodyRowWide ? styles.diagramRowWide : styles.diagramRowNarrow}>
-                  <View style={[styles.diagramCard, isBodyRowWide && styles.diagramCardWide]}>
-                    <ThemedText type="smallBold" style={styles.diagramCardTitle}>
-                      Ön görünüm
-                    </ThemedText>
-                    <View style={styles.diagramWrap}>
-                      <BodyMuscleDiagram data={data ?? []} view="front" mode="paint" />
-                    </View>
-                  </View>
-                  <View style={[styles.diagramCard, isBodyRowWide && styles.diagramCardWide]}>
-                    <ThemedText type="smallBold" style={styles.diagramCardTitle}>
-                      Arka görünüm
-                    </ThemedText>
-                    <View style={styles.diagramWrap}>
-                      <BodyMuscleDiagram data={data ?? []} view="back" mode="paint" />
-                    </View>
-                  </View>
-                </View>
-                <ThemedText type="small" themeColor="textSecondary" style={styles.attribution}>
-                  Kas illüstrasyonu: Wikimedia Commons (CC BY-SA 3.0)
+              <View style={{ backgroundColor: theme.backgroundElement, borderRadius: Spacing.three, padding: Spacing.three }}>
+                <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
+                  Kas grubu yük dağılımı (set × tekrar)
                 </ThemedText>
-
-                <View style={{ backgroundColor: theme.backgroundElement, borderRadius: Spacing.three, padding: Spacing.three }}>
-                  <ThemedText type="smallBold" style={{ marginBottom: Spacing.two }}>
-                    Kas grubu yük dağılımı (set × tekrar)
-                  </ThemedText>
-                  <View style={{ alignItems: 'center' }}>
-                    <MuscleGroupRadarChart data={data ?? []} />
-                  </View>
+                <View style={{ alignItems: 'center' }}>
+                  <MuscleGroupRadarChart data={data ?? []} />
                 </View>
-              </>
+              </View>
             )}
           </ScrollView>
         )}
@@ -280,11 +253,4 @@ const styles = StyleSheet.create({
   },
   granularityBlock: { alignItems: 'flex-end', gap: Spacing.two },
   quickDateRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  diagramRowWide: { flexDirection: 'row', gap: Spacing.four, alignItems: 'flex-start' },
-  diagramRowNarrow: { gap: Spacing.four },
-  diagramCard: { padding: Spacing.three, borderRadius: Spacing.three, backgroundColor: '#f2ece3' },
-  diagramCardWide: { width: BODY_DIAGRAM_WIDTH + Spacing.three * 2 },
-  diagramCardTitle: { marginBottom: Spacing.three, color: '#1a1a19' },
-  diagramWrap: { alignItems: 'center' },
-  attribution: { marginTop: -Spacing.two, textAlign: 'right' },
 });
