@@ -176,7 +176,7 @@ function DefaultWeightRow({
 
   return (
     <View>
-      <View style={styles.exerciseRow}>
+      <View style={{ ...styles.exerciseRow, ...styles.selectedExerciseBorder }}>
         <ThemedText type="small" themeColor="textSecondary" style={styles.exerciseIndex}>
           {index + 1}.
         </ThemedText>
@@ -332,6 +332,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.two,
+  },
+  selectedExerciseBorder: {
+    padding: Spacing.two,
+    borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: ClubColors.yellow,
   },
   exerciseIndex: { width: 20 },
   weightInput: {

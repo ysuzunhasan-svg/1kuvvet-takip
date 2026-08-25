@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View }
 
 import { ThemedText } from '@/components/themed-text';
 import { muscleGroupLabel, MUSCLE_GROUP_ORDER } from '@/constants/muscleGroups';
-import { Spacing } from '@/constants/theme';
+import { ClubColors, Spacing } from '@/constants/theme';
 import {
   useAddPlayerSessionEntry,
   useCreateExercise,
@@ -298,6 +298,8 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     padding: Spacing.two,
     borderRadius: Spacing.two,
+    borderWidth: 1.5,
+    borderColor: ClubColors.yellow,
   },
   weightInput: {
     width: 56,
